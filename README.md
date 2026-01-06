@@ -1,6 +1,6 @@
-# Virtual peace of mind Frontend
+# Virtual Peace of Mind Frontend
 
-A modern React + TypeScript frontend for the Virtual peace of mind management system with JWT authentication, user profile management, and a beautiful UI built with shadcn/ui.
+A modern React + TypeScript frontend for the Virtual Peace of Mind management system with JWT authentication, user profile management, and a beautiful UI built with shadcn/ui.
 
 ## Project info
 

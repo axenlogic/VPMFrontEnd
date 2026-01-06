@@ -1,13 +1,22 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Loader2, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react";
 import { useSignup } from "@/hooks/useSignup";
 import { validatePassword } from "@/services/authService";
 
 const Signup = () => {
+  const navigate = useNavigate();
   const { signup, loading } = useSignup();
   const [formData, setFormData] = useState({
     full_name: "",
@@ -15,6 +24,7 @@ const Signup = () => {
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [passwordValidation, setPasswordValidation] = useState({
     isValid: false,
     errors: [] as string[],
@@ -44,67 +54,88 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle px-4 py-8">
-      <div className="w-full max-w-md">
-        <div className="bg-card rounded-2xl shadow-large p-8 border border-border">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Create Account
-            </h1>
-            <p className="text-muted-foreground">Sign up to get started</p>
-          </div>
+    <div className="min-h-screen relative" style={{ backgroundColor: 'var(--brand-color)' }}>
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-6">
+        {/* Logo on Left */}
+        <div className="flex items-center gap-3">
+          <img 
+            src="/vpm-logo.png" 
+            alt="VPM Logo" 
+            className="h-10 w-auto object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        </div>
+
+        {/* Log In Button on Right */}
+        <Button
+          onClick={() => navigate("/login")}
+          variant="default"
+          className="px-6"
+        >
+          Log In
+        </Button>
+      </div>
+
+      {/* Main Content - Centered */}
+      <div className="min-h-screen flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md">
+          <div className="bg-card rounded-2xl shadow-large p-8 border border-border">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-foreground mb-2">
+                Create Account
+              </h1>
+              <p className="text-muted-foreground">Sign up to get started</p>
+            </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="full_name">Full Name</Label>
               <Input
                 id="full_name"
                 name="full_name"
                 type="text"
-                placeholder="John Doe"
+                placeholder="Enter Your Full Name"
                 value={formData.full_name}
                 onChange={handleChange}
                 required
-                className="h-11"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="Enter Your Email Address"
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="h-11"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="Enter Your Password"
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="h-11 pr-10"
+                  className="pr-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
+                    <EyeOff className="h-5 w-5" />
                   ) : (
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-5 w-5" />
                   )}
                 </button>
               </div>
@@ -184,18 +215,42 @@ const Signup = () => {
               )}
             </Button>
           </form>
-
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            Already have an account?{" "}
-            <Link
-              to="/login"
-              className="text-primary hover:text-primary-hover font-medium transition-colors"
-            >
-              Log in
-            </Link>
-          </p>
+          </div>
         </div>
       </div>
+
+      {/* Need Help Link - Bottom Right */}
+      <div className="absolute bottom-6 right-6">
+        <button
+          onClick={() => setShowHelpDialog(true)}
+          className="text-primary hover:text-primary-hover font-medium transition-colors"
+        >
+          Need Help?
+        </button>
+      </div>
+
+      {/* Help Dialog */}
+      <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle>Contact Support</DialogTitle>
+            <DialogDescription>
+              If you have any questions, please call Virtual Peace of Mind support at{" "}
+              <a 
+                href="tel:8007642935" 
+                className="text-primary hover:text-primary-hover font-semibold"
+              >
+                (800) 764-2935
+              </a>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setShowHelpDialog(false)}>
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -100,7 +100,7 @@
 
 ### Main Page Header
 
-- **Navigation Bar:** Shows "Welcome, [Full Name]" below "Virtual peace of mind"
+- **Navigation Bar:** Shows "Welcome, [Full Name]" below "Virtual Peace of Mind"
 - **Main Content:** Shows "Welcome back, [Full Name]!" with verified account badge
 - **User Info:** Displays email and account status
 

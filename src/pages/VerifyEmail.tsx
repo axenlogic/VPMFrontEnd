@@ -32,7 +32,7 @@ const VerifyEmail = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ backgroundColor: 'var(--brand-color)' }}>
       <div className="w-full max-w-md">
         <div className="bg-card rounded-2xl shadow-large p-8 border border-border">
           <div className="text-center mb-8">

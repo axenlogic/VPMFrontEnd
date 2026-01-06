@@ -7,21 +7,27 @@ All colors MUST be HSL.
 */
 
 @layer base {
+  * {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  
   :root {
-    --background: 0 0% 100%;
+    --background: 160 40% 80%;
+    /* #bae1d3 equivalent in HSL */
     --foreground: 160 8% 15%;
 
     --card: 0 0% 100%;
+    /* White cards for contrast */
     --card-foreground: 160 8% 15%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 160 8% 15%;
 
-    --primary: 160 84% 25%;
+    --primary: 180 28% 23%; /* #294a4a equivalent in HSL */
     --primary-foreground: 0 0% 100%;
-    
-    --primary-hover: 160 84% 30%;
-    --primary-light: 160 60% 95%;
+
+    --primary-hover: 180 28% 28%; /* Slightly lighter for hover */
+    --primary-light: 180 28% 35%; /* Lighter variant */
 
     --secondary: 160 10% 96%;
     --secondary-foreground: 160 8% 15%;
@@ -29,28 +35,34 @@ All colors MUST be HSL.
     --muted: 160 10% 96%;
     --muted-foreground: 160 6% 50%;
 
-    --accent: 160 60% 92%;
-    --accent-foreground: 160 84% 25%;
+    --accent: 180 28% 23%; /* Match primary for consistency */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 160 15% 90%;
     --input: 160 15% 92%;
-    --ring: 160 84% 25%;
+    --ring: 180 28% 23%; /* Match primary for focus rings */
 
     --radius: 0.75rem;
-    
+
+    --brand-color: #bae1d3;
+    --brand-color-hsl: 160 40% 80%;
+    --button-color: #294a4a;
+    --button-color-hsl: 180 28% 23%;
+
     --shadow-soft: 0 2px 8px -2px hsl(160 20% 20% / 0.08);
     --shadow-medium: 0 4px 16px -4px hsl(160 20% 20% / 0.12);
     --shadow-large: 0 8px 32px -8px hsl(160 20% 20% / 0.16);
-    
-    --gradient-primary: linear-gradient(135deg, hsl(160 84% 25%), hsl(160 84% 30%));
+
+    --gradient-primary: linear-gradient(135deg, hsl(180 28% 23%), hsl(180 28% 28%));
     --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(160 10% 98%));
-    
+
     --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 160 40% 80%;
+    /* Match brand color */
 
     --sidebar-foreground: 240 5.3% 26.1%;
 
@@ -77,11 +89,11 @@ All colors MUST be HSL.
     --popover: 160 12% 10%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 160 70% 45%;
+    --primary: 180 28% 23%; /* #294a4a - same for dark mode */
     --primary-foreground: 0 0% 100%;
-    
-    --primary-hover: 160 70% 50%;
-    --primary-light: 160 40% 15%;
+
+    --primary-hover: 180 28% 28%;
+    --primary-light: 180 28% 35%;
 
     --secondary: 160 10% 15%;
     --secondary-foreground: 0 0% 98%;
@@ -89,16 +101,16 @@ All colors MUST be HSL.
     --muted: 160 10% 15%;
     --muted-foreground: 160 6% 60%;
 
-    --accent: 160 30% 20%;
-    --accent-foreground: 160 70% 45%;
+    --accent: 180 28% 23%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 50.6%;
     --destructive-foreground: 0 0% 98%;
 
     --border: 160 15% 18%;
     --input: 160 15% 18%;
-    --ring: 160 70% 45%;
-    
+    --ring: 180 28% 23%;
+
     --shadow-soft: 0 2px 8px -2px hsl(0 0% 0% / 0.3);
     --shadow-medium: 0 4px 16px -4px hsl(0 0% 0% / 0.4);
     --shadow-large: 0 8px 32px -8px hsl(0 0% 0% / 0.5);

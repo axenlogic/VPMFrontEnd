@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains centralized API services for the Virtual peace of mind application, providing clean separation of concerns and consistent error handling.
+This directory contains centralized API services for the Virtual Peace of Mind application, providing clean separation of concerns and consistent error handling.
 
 ## Files
 

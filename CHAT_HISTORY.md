@@ -6,7 +6,7 @@ This document contains important context, decisions, and configurations from the
 
 ## Project Overview
 
-**Project Name**: Medical Care Frontend / Virtual peace of mind Frontend  
+**Project Name**: Medical Care Frontend / Virtual Peace of Mind Frontend  
 **Domain**: `dashboard.vpmforschools.org`  
 **Tech Stack**: React 18.3, TypeScript, Vite 5.4, Tailwind CSS, shadcn/ui  
 **Backend**: Google Cloud Run API

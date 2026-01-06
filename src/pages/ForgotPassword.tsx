@@ -37,7 +37,7 @@ const ForgotPassword = () => {
 
   if (emailSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-subtle px-4 py-8">
+      <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ backgroundColor: 'var(--brand-color)' }}>
         <div className="w-full max-w-md">
           <div className="bg-card rounded-2xl shadow-large p-8 border border-border text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-light rounded-full mb-4">
@@ -69,7 +69,7 @@ const ForgotPassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ backgroundColor: 'var(--brand-color)' }}>
       <div className="w-full max-w-md">
         <div className="bg-card rounded-2xl shadow-large p-8 border border-border">
           <div className="mb-6">
