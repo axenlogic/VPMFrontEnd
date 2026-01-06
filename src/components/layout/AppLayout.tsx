@@ -17,9 +17,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: 'var(--brand-color)' }}>
-        <div className="max-w-7xl mx-auto">
-          {children}
-        </div>
+        {children}
       </main>
     </div>
   );

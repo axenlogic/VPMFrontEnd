@@ -15,12 +15,10 @@ import Login from "./pages/Login";
 import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import Main from "./pages/Main";
 import NotFound from "./pages/NotFound";
 import IntakeForm from "./pages/IntakeForm";
 import IntakeStatus from "./pages/IntakeStatus";
 import Dashboard from "./pages/Dashboard";
-import AdminDashboard from "./pages/admin/AdminDashboard";
 import IntakeProcessing from "./pages/admin/IntakeProcessing";
 import { UserRole } from "./types/user";
 
@@ -64,18 +62,6 @@ const App = () => (
                   } 
                 />
 
-                {/* Protected routes with layout */}
-                <Route
-                  path="/main"
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <Main />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
-
                 {/* Dashboard - accessible to all authenticated users */}
                 <Route
                   path="/dashboard"
@@ -89,18 +75,6 @@ const App = () => (
                 />
 
                 {/* Admin routes - VPM Admin only */}
-                <Route
-                  path="/admin/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <RoleGuard allowedRoles={["vpm_admin"]}>
-                        <AppLayout>
-                          <AdminDashboard />
-                        </AppLayout>
-                      </RoleGuard>
-                    </ProtectedRoute>
-                  }
-                />
                 <Route
                   path="/admin/intake/:id"
                   element={

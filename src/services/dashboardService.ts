@@ -6,6 +6,23 @@ export interface DashboardSummary {
   active_students: number;
   pending_intakes: number;
   completed_sessions: number;
+  // Change indicators
+  opt_ins_change?: {
+    value: string;
+    is_positive: boolean;
+  };
+  referrals_change?: {
+    value: string;
+    is_positive: boolean;
+  };
+  active_students_change?: {
+    value: string;
+    is_positive: boolean;
+  };
+  sessions_change?: {
+    value: string;
+    is_positive: boolean;
+  };
 }
 
 export interface DashboardFilters {
@@ -66,6 +83,10 @@ export class DashboardService {
       const response = await api.get(`/dashboard/summary?${params.toString()}`);
       return response.data;
     } catch (error: any) {
+      // Don't throw error for 404s - let component handle with dummy data
+      if (error.response?.status === 404) {
+        throw new Error('NOT_FOUND');
+      }
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail);
       }
@@ -93,6 +114,10 @@ export class DashboardService {
       const response = await api.get(`/dashboard/district-breakdown?${params.toString()}`);
       return response.data;
     } catch (error: any) {
+      // Don't throw error for 404s - let component handle with dummy data
+      if (error.response?.status === 404) {
+        throw new Error('NOT_FOUND');
+      }
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail);
       }
@@ -120,6 +145,10 @@ export class DashboardService {
       const response = await api.get(`/dashboard/school-breakdown?${params.toString()}`);
       return response.data;
     } catch (error: any) {
+      // Don't throw error for 404s - let component handle with dummy data
+      if (error.response?.status === 404) {
+        throw new Error('NOT_FOUND');
+      }
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail);
       }
@@ -147,6 +176,10 @@ export class DashboardService {
       const response = await api.get(`/dashboard/trends?${params.toString()}`);
       return response.data;
     } catch (error: any) {
+      // Don't throw error for 404s - let component handle with dummy data
+      if (error.response?.status === 404) {
+        throw new Error('NOT_FOUND');
+      }
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail);
       }

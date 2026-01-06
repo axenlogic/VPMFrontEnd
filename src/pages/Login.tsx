@@ -41,7 +41,7 @@ const Login = () => {
 
   // Redirect if already authenticated
   if (isAuthenticated) {
-    navigate("/main");
+    navigate("/dashboard");
     return null;
   }
 

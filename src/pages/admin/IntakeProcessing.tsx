@@ -37,7 +37,7 @@ const IntakeProcessing = () => {
       setIntake(data);
     } catch (error: any) {
       toast.error(error.message || "Failed to fetch intake details");
-      navigate("/admin/dashboard");
+      navigate("/dashboard");
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +53,7 @@ const IntakeProcessing = () => {
       });
       toast.success("Intake processed successfully");
       setIsDialogOpen(false);
-      navigate("/admin/dashboard");
+      navigate("/dashboard");
     } catch (error: any) {
       toast.error(error.message || "Failed to process intake");
     } finally {
@@ -85,9 +85,9 @@ const IntakeProcessing = () => {
       </Alert>
 
       <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={() => navigate("/admin/dashboard")}>
+        <Button variant="outline" onClick={() => navigate("/dashboard")}>
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to List
+          Back to Dashboard
         </Button>
         <div>
           <h1 className="text-3xl font-bold">Intake Processing</h1>

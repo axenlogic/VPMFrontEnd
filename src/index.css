@@ -10,7 +10,7 @@ All colors MUST be HSL.
   * {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
-  
+
   :root {
     --background: 160 40% 80%;
     /* #bae1d3 equivalent in HSL */
@@ -23,11 +23,14 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 160 8% 15%;
 
-    --primary: 180 28% 23%; /* #294a4a equivalent in HSL */
+    --primary: 180 28% 23%;
+    /* #294a4a equivalent in HSL */
     --primary-foreground: 0 0% 100%;
 
-    --primary-hover: 180 28% 28%; /* Slightly lighter for hover */
-    --primary-light: 180 28% 35%; /* Lighter variant */
+    --primary-hover: 180 28% 28%;
+    /* Slightly lighter for hover */
+    --primary-light: 180 28% 35%;
+    /* Lighter variant */
 
     --secondary: 160 10% 96%;
     --secondary-foreground: 160 8% 15%;
@@ -35,7 +38,8 @@ All colors MUST be HSL.
     --muted: 160 10% 96%;
     --muted-foreground: 160 6% 50%;
 
-    --accent: 180 28% 23%; /* Match primary for consistency */
+    --accent: 180 28% 23%;
+    /* Match primary for consistency */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
@@ -43,7 +47,8 @@ All colors MUST be HSL.
 
     --border: 160 15% 90%;
     --input: 160 15% 92%;
-    --ring: 180 28% 23%; /* Match primary for focus rings */
+    --ring: 180 28% 23%;
+    /* Match primary for focus rings */
 
     --radius: 0.75rem;
 
@@ -89,7 +94,8 @@ All colors MUST be HSL.
     --popover: 160 12% 10%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 180 28% 23%; /* #294a4a - same for dark mode */
+    --primary: 180 28% 23%;
+    /* #294a4a - same for dark mode */
     --primary-foreground: 0 0% 100%;
 
     --primary-hover: 180 28% 28%;
