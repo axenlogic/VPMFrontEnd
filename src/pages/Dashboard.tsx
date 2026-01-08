@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import SummaryCard from "@/components/dashboard/SummaryCard";
 import CSVDataChart from "@/components/dashboard/CSVDataChart";
 import BreakdownDonutChart from "@/components/dashboard/BreakdownDonutChart";
+import DistrictsList from "@/components/dashboard/DistrictsList";
 
 const Dashboard = () => {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -303,6 +304,17 @@ const Dashboard = () => {
           period={breakdownPeriod}
           onPeriodChange={setBreakdownPeriod}
           totalLabel="Total Aggregation"
+        />
+      </div>
+
+      {/* Third Row - Districts & Schools List */}
+      <div className="mt-6">
+        <DistrictsList
+          onFormClick={(form) => {
+            // Handle form click - can navigate to form details or open modal
+            console.log("Form clicked:", form);
+            // Example: navigate(`/admin/intake/${form.id}`);
+          }}
         />
       </div>
     </div>
