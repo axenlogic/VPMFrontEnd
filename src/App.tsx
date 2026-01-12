@@ -2,10 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Provider as ReduxProvider } from "react-redux";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "./contexts/AuthContext";
 import { UserProvider } from "./contexts/UserContext";
+import { store } from "./store";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleGuard from "./components/RoleGuard";
 import AppLayout from "./components/layout/AppLayout";
@@ -25,30 +27,66 @@ import { UserRole } from "./types/user";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <UserProvider>
+  <ReduxProvider store={store}>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <UserProvider>
               <Routes>
                 {/* Default route with smart redirect */}
                 <Route path="/" element={<RootRedirect />} />
 
-                {/* Public auth routes - No layout */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/verify-email" element={<VerifyEmail />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
+                {/* Public auth routes - No layout, but redirect if already authenticated */}
+                <Route 
+                  path="/login" 
+                  element={
+                    <ProtectedRoute redirectIfAuthenticated={true} redirectTo="/dashboard">
+                      <Login />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/signup" 
+                  element={
+                    <ProtectedRoute redirectIfAuthenticated={true} redirectTo="/dashboard">
+                      <Signup />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/verify-email" 
+                  element={
+                    <ProtectedRoute redirectIfAuthenticated={true} redirectTo="/dashboard">
+                      <VerifyEmail />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/forgot-password" 
+                  element={
+                    <ProtectedRoute redirectIfAuthenticated={true} redirectTo="/dashboard">
+                      <ForgotPassword />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/reset-password" 
+                  element={
+                    <ProtectedRoute redirectIfAuthenticated={true} redirectTo="/dashboard">
+                      <ResetPassword />
+                    </ProtectedRoute>
+                  } 
+                />
 
-                {/* Public intake routes - With layout */}
+                {/* Public intake routes - With layout (public access only) */}
                 <Route 
                   path="/intake" 
                   element={
-                    <AppLayout>
+                    <AppLayout publicRoute={true}>
                       <IntakeForm />
                     </AppLayout>
                   } 
@@ -56,7 +94,7 @@ const App = () => (
                 <Route 
                   path="/intake/status" 
                   element={
-                    <AppLayout>
+                    <AppLayout publicRoute={true}>
                       <IntakeStatus />
                     </AppLayout>
                   } 
@@ -91,12 +129,13 @@ const App = () => (
                 {/* Catch-all route */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </UserProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ThemeProvider>
+              </UserProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  </ReduxProvider>
 );
 
 export default App;

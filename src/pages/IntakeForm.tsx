@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,8 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2, Upload, Camera, Loader2 } from "lucide-react";
-import { IntakeService } from "@/services/intakeService";
+import { AlertCircle, CheckCircle2, Upload, Camera, Loader2, Copy, Check, Sparkles, FileText } from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { submitIntakeForm, clearSubmissionState } from "@/store/slices/intakeSlice";
 import { IntakeFormData } from "@/types/intake";
 import { toast } from "sonner";
 
@@ -138,10 +140,43 @@ type IntakeFormValues = z.infer<typeof intakeFormSchema> & {
 };
 
 const IntakeForm = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submittedUuid, setSubmittedUuid] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  
+  // Redux state
+  const { isSubmitting, submitError, submissionSuccess, submittedUuid } = useAppSelector(
+    (state) => state.intake
+  );
+  
+  // Local state for file uploads
   const [insuranceCardFront, setInsuranceCardFront] = useState<File | null>(null);
   const [insuranceCardBack, setInsuranceCardBack] = useState<File | null>(null);
+  
+  // Copy to clipboard state
+  const [copied, setCopied] = useState(false);
+  
+  // Clear submission state when component unmounts or on navigation
+  useEffect(() => {
+    return () => {
+      dispatch(clearSubmissionState());
+    };
+  }, [dispatch]);
+  
+  // Handle successful submission
+  useEffect(() => {
+    if (submissionSuccess && submittedUuid) {
+      toast.success("Intake form submitted successfully!");
+      // Optionally navigate to status page or show success message
+      // navigate(`/intake/status?uuid=${submittedUuid}`);
+    }
+  }, [submissionSuccess, submittedUuid, navigate]);
+  
+  // Handle submission errors
+  useEffect(() => {
+    if (submitError) {
+      toast.error(submitError);
+    }
+  }, [submitError]);
 
   const {
     register,
@@ -221,44 +256,61 @@ const IntakeForm = () => {
   };
 
   const onSubmit = async (data: IntakeFormValues) => {
-    setIsSubmitting(true);
-    try {
-      // Transform form data to match API expected format
-      const formData: any = {
-        student_information: {
-          first_name: data.student_information.first_name,
-          last_name: data.student_information.last_name,
-          full_name: `${data.student_information.first_name} ${data.student_information.last_name}`,
-          grade_level: data.student_information.grade,
-          school: data.student_information.school,
-          date_of_birth: data.student_information.date_of_birth,
-          student_id: data.student_information.student_id,
-        },
-        parent_guardian_contact: data.parent_guardian_contact,
-        service_request_type: data.service_request_type,
-        insurance_information: {
-          has_insurance: data.insurance_information.has_insurance === "yes",
-          insurance_company: data.insurance_information.insurance_company,
-          policyholder_name: data.insurance_information.policyholder_name,
-          relationship_to_student: data.insurance_information.relationship_to_student,
-          member_id: data.insurance_information.member_id,
-          group_number: data.insurance_information.group_number,
-          insurance_card_front: insuranceCardFront || undefined,
-          insurance_card_back: insuranceCardBack || undefined,
-        },
-        service_needs: data.service_needs,
-        demographics: data.demographics,
-        immediate_safety_concern: data.immediate_safety_concern === "yes",
-        authorization_consent: data.authorization_consent,
-      };
+    // Clear any previous submission state
+    dispatch(clearSubmissionState());
+    
+    // Transform form data to match API expected format
+    // Backend expects "yes"/"no" strings for has_insurance and immediate_safety_concern
+    // Form validation ensures required fields are present
+    const formData: IntakeFormData = {
+      student_information: {
+        first_name: data.student_information.first_name,
+        last_name: data.student_information.last_name,
+        full_name: `${data.student_information.first_name} ${data.student_information.last_name}`,
+        grade: data.student_information.grade,
+        school: data.student_information.school,
+        date_of_birth: data.student_information.date_of_birth,
+        student_id: data.student_information.student_id,
+      },
+      parent_guardian_contact: {
+        name: data.parent_guardian_contact.name,
+        email: data.parent_guardian_contact.email,
+        phone: data.parent_guardian_contact.phone,
+      },
+      service_request_type: data.service_request_type,
+      insurance_information: {
+        has_insurance: data.insurance_information.has_insurance, // Keep as "yes"/"no" string
+        insurance_company: data.insurance_information.insurance_company,
+        policyholder_name: data.insurance_information.policyholder_name,
+        relationship_to_student: data.insurance_information.relationship_to_student,
+        member_id: data.insurance_information.member_id,
+        group_number: data.insurance_information.group_number,
+        insurance_card_front: insuranceCardFront || undefined,
+        insurance_card_back: insuranceCardBack || undefined,
+      },
+      service_needs: {
+        service_category: data.service_needs.service_category,
+        service_category_other: data.service_needs.service_category_other,
+        severity_of_concern: data.service_needs.severity_of_concern,
+        type_of_service_needed: data.service_needs.type_of_service_needed,
+        family_resources: data.service_needs.family_resources,
+        referral_concern: data.service_needs.referral_concern,
+      },
+      demographics: data.demographics,
+      immediate_safety_concern: data.immediate_safety_concern, // Keep as "yes"/"no" string
+      authorization_consent: data.authorization_consent,
+    };
 
-      const response = await IntakeService.submitIntakeForm(formData);
-      setSubmittedUuid(response.student_uuid);
-      toast.success("Intake form submitted successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to submit intake form");
-    } finally {
-      setIsSubmitting(false);
+    // Submit using Redux thunk
+    // CAPTCHA token can be added here when CAPTCHA is implemented
+    const result = await dispatch(submitIntakeForm({ 
+      formData,
+      captchaToken: undefined // TODO: Add CAPTCHA token when implemented
+    }));
+    
+    // If submission was successful, the useEffect will handle the success message
+    if (submitIntakeForm.fulfilled.match(result)) {
+      // Success is handled by useEffect watching submissionSuccess
     }
   };
 
@@ -408,34 +460,112 @@ const IntakeForm = () => {
     }
   };
 
+  // Copy UUID to clipboard
+  const handleCopyUuid = async () => {
+    if (submittedUuid) {
+      try {
+        await navigator.clipboard.writeText(submittedUuid);
+        setCopied(true);
+        toast.success("UUID copied to clipboard!");
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        toast.error("Failed to copy UUID");
+      }
+    }
+  };
+
   if (submittedUuid) {
     return (
-      <div className="py-12 px-4" style={{ backgroundColor: 'var(--brand-color)' }}>
-        <div className="max-w-2xl mx-auto">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2 text-green-600">
-                <CheckCircle2 className="w-6 h-6" />
-                <CardTitle>Form Submitted Successfully</CardTitle>
+      <div className="min-h-screen py-12 px-4 flex items-center justify-center" style={{ backgroundColor: 'var(--brand-color)' }}>
+        <div className="max-w-2xl w-full mx-auto">
+          <Card className="shadow-2xl border-0 overflow-hidden">
+            <CardContent className="p-8 md:p-12">
+              {/* Animated Success Icon */}
+              <div className="flex flex-col items-center text-center space-y-6">
+                {/* Success Animation Container */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-32 h-32 bg-green-100 rounded-full animate-ping opacity-20"></div>
+                  </div>
+                  <div className="relative w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg transform transition-all duration-500 animate-scale-in">
+                    <CheckCircle2 className="w-14 h-14 text-white animate-checkmark" />
+                  </div>
+                </div>
+
+                {/* Thank You Message */}
+                <div className="space-y-3 animate-fade-in-up">
+                  <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
+                    Thank You!
+                  </h1>
+                  <p className="text-lg text-gray-600 max-w-md">
+                    Your intake form has been successfully submitted. We'll review your submission and get back to you soon.
+                  </p>
+                </div>
+
+                {/* UUID Section */}
+                <div className="w-full space-y-3 animate-fade-in-up animation-delay-200">
+                  <Label className="text-sm font-semibold text-gray-700 block text-left">
+                    Your Student UUID:
+                  </Label>
+                  <div className="relative group">
+                    <div className="flex items-center gap-2 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200 hover:border-[#294a4a] transition-all duration-300">
+                      <p className="font-mono text-sm md:text-base text-gray-800 flex-1 break-all pr-2">
+                        {submittedUuid}
+                      </p>
+                      <Button
+                        onClick={handleCopyUuid}
+                        variant="ghost"
+                        size="sm"
+                        className="flex-shrink-0 h-9 w-9 p-0 hover:bg-[#294a4a] hover:text-white transition-all duration-200 group/copy"
+                        title={copied ? "Copied!" : "Copy to clipboard"}
+                      >
+                        {copied ? (
+                          <Check className="w-5 h-5 text-green-600 group-hover/copy:text-white" />
+                        ) : (
+                          <Copy className="w-5 h-5 text-gray-600 group-hover/copy:text-white" />
+                        )}
+                      </Button>
+                    </div>
+                    {copied && (
+                      <div className="absolute -top-8 right-0 bg-green-500 text-white text-xs px-3 py-1 rounded-full animate-fade-in">
+                        Copied!
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 text-left">
+                    💡 Please save this UUID. You'll need it to check your submission status.
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 w-full pt-4 animate-fade-in-up animation-delay-400">
+                  <Button
+                    onClick={() => {
+                      dispatch(clearSubmissionState());
+                      window.location.reload();
+                    }}
+                    className="flex-1 bg-[#294a4a] hover:bg-[#375b59] text-white h-12 text-base font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    Submit Another Form
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      navigate(`/intake/status?uuid=${submittedUuid}`);
+                    }}
+                    variant="outline"
+                    className="flex-1 border-2 border-[#294a4a] text-[#294a4a] hover:bg-[#294a4a] hover:text-white h-12 text-base font-medium transition-all duration-300"
+                  >
+                    Check Status
+                  </Button>
+                </div>
+
+                {/* Decorative Elements */}
+                <div className="flex items-center gap-2 pt-4 animate-fade-in-up animation-delay-600">
+                  <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
+                  <span className="text-sm text-gray-500">Your submission is being processed</span>
+                  <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
+                </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-muted-foreground">
-                Your intake form has been submitted. Please save this Student UUID for status checking:
-              </p>
-              <div className="p-4 bg-muted rounded-lg">
-                <Label className="text-sm font-semibold">Student UUID:</Label>
-                <p className="font-mono text-lg mt-2 break-all">{submittedUuid}</p>
-              </div>
-              <Button
-                onClick={() => {
-                  setSubmittedUuid(null);
-                  window.location.reload();
-                }}
-                className="w-full"
-              >
-                Submit Another Form
-              </Button>
             </CardContent>
           </Card>
         </div>
@@ -444,20 +574,28 @@ const IntakeForm = () => {
   }
 
   return (
-    <div className="py-12 px-4" style={{ backgroundColor: 'var(--brand-color)' }}>
-      <div className="max-w-4xl mx-auto">
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold">STUDENT INTAKE FORM</CardTitle>
-            <CardDescription>
+    <div className="pt-4 pb-12 px-4 overflow-x-hidden" style={{ backgroundColor: 'var(--brand-color)' }}>
+      <div className="max-w-4xl mx-auto w-full">
+        <Card className="shadow-lg overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-[#294a4a] to-[#375b59] text-white">
+            <CardTitle className="text-2xl font-bold flex items-center gap-2">
+              <FileText className="w-6 h-6" />
+              STUDENT INTAKE FORM
+            </CardTitle>
+            <CardDescription className="text-gray-100 mt-2">
               This form allows Virtual Peace of Mind (VPM) to verify insurance coverage, confirm urgency, and contact families to complete consent and schedule services.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6 md:p-8 overflow-x-hidden">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
               {/* SECTION 1: STUDENT INFORMATION */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">SECTION 1: STUDENT INFORMATION</h3>
+              <div className="space-y-4 animate-fade-in-up">
+                <div className="flex items-center gap-2 pb-2 border-b-2 border-[#294a4a]/20">
+                  <div className="p-2 bg-[#294a4a]/10 rounded-lg">
+                    <FileText className="w-5 h-5 text-[#294a4a]" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">SECTION 1: STUDENT INFORMATION</h3>
+                </div>
                 <p className="text-sm text-gray-600 italic">All fields are auto-populated</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -542,8 +680,13 @@ const IntakeForm = () => {
               </div>
 
               {/* SECTION 2: PARENT/GUARDIAN CONTACT INFORMATION */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">SECTION 2: PARENT/GUARDIAN CONTACT INFORMATION</h3>
+              <div className="space-y-4 animate-fade-in-up animation-delay-200">
+                <div className="flex items-center gap-2 pb-2 border-b-2 border-[#294a4a]/20">
+                  <div className="p-2 bg-[#294a4a]/10 rounded-lg">
+                    <FileText className="w-5 h-5 text-[#294a4a]" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">SECTION 2: PARENT/GUARDIAN CONTACT INFORMATION</h3>
+                </div>
                 <p className="text-sm text-gray-600 italic">All fields are auto-populated-editable</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -591,8 +734,13 @@ const IntakeForm = () => {
               </div>
 
               {/* SECTION 3: SERVICE REQUEST TYPE */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">SECTION 3: SERVICE REQUEST TYPE (Required)</h3>
+              <div className="space-y-4 animate-fade-in-up animation-delay-400">
+                <div className="flex items-center gap-2 pb-2 border-b-2 border-[#294a4a]/20">
+                  <div className="p-2 bg-[#294a4a]/10 rounded-lg">
+                    <FileText className="w-5 h-5 text-[#294a4a]" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">SECTION 3: SERVICE REQUEST TYPE (Required)</h3>
+                </div>
                 <p className="text-sm text-gray-600 mb-2">Please select one:</p>
                 <RadioGroup
                   value={watch("service_request_type")}
@@ -626,8 +774,13 @@ const IntakeForm = () => {
               </div>
 
               {/* SECTION 4: INSURANCE INFORMATION */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">SECTION 4: INSURANCE INFORMATION (Required to Proceed)</h3>
+              <div className="space-y-4 animate-fade-in-up animation-delay-600">
+                <div className="flex items-center gap-2 pb-2 border-b-2 border-[#294a4a]/20">
+                  <div className="p-2 bg-[#294a4a]/10 rounded-lg">
+                    <FileText className="w-5 h-5 text-[#294a4a]" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">SECTION 4: INSURANCE INFORMATION (Required to Proceed)</h3>
+                </div>
                 <p className="text-sm text-gray-600 mb-2">Does your child currently have health insurance?</p>
                 <RadioGroup
                   value={watch("insurance_information.has_insurance")}
@@ -807,8 +960,13 @@ const IntakeForm = () => {
               </div>
 
               {/* SECTION 5: Service Needs */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">SECTION 5: Service Needs</h3>
+              <div className="space-y-4 animate-fade-in-up">
+                <div className="flex items-center gap-2 pb-2 border-b-2 border-[#294a4a]/20">
+                  <div className="p-2 bg-[#294a4a]/10 rounded-lg">
+                    <FileText className="w-5 h-5 text-[#294a4a]" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">SECTION 5: Service Needs</h3>
+                </div>
                 
                 {/* Service Category */}
                 <div className="space-y-2">
@@ -956,15 +1114,19 @@ const IntakeForm = () => {
                 <div className="space-y-2">
                   <Label>Family Resources</Label>
                   <p className="text-xs text-gray-600 mb-2">Choose all that apply (dropdown)</p>
-                  <div className="border rounded-lg p-3 min-h-[60px] bg-gray-50">
+                  <div className="border-2 border-gray-200 rounded-lg p-3 min-h-[60px] bg-gradient-to-br from-gray-50 to-white transition-all duration-200 hover:border-[#294a4a]/30">
                     {familyResources.length === 0 ? (
-                      <p className="text-sm text-gray-400 italic">No resources selected</p>
+                      <p className="text-sm text-gray-400 italic flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 animate-pulse" />
+                        No resources selected
+                      </p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
-                        {familyResources.map((resource) => (
+                        {familyResources.map((resource, index) => (
                           <span
                             key={resource}
-                            className="inline-flex items-center gap-1 px-3 py-1 bg-[#294a4a] text-white text-sm rounded-full"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-[#294a4a] to-[#375b59] text-white text-sm rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 animate-slide-in"
+                            style={{ animationDelay: `${index * 0.1}s` }}
                           >
                             {resource}
                             <button
@@ -976,7 +1138,7 @@ const IntakeForm = () => {
                                   familyResources
                                 )
                               }
-                              className="ml-1 hover:text-red-200"
+                              className="ml-1 hover:text-red-200 hover:scale-110 transition-transform"
                             >
                               ×
                             </button>
@@ -986,23 +1148,28 @@ const IntakeForm = () => {
                     )}
                   </div>
                   <Select
-                    onValueChange={(value) =>
+                    onValueChange={(value) => {
                       handleMultiSelectChange(
                         "service_needs.family_resources",
                         value,
                         familyResources
-                      )
-                    }
+                      );
+                    }}
+                    value=""
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select family resource needs" />
+                    <SelectTrigger className="w-full h-12 animate-fade-in">
+                      <SelectValue placeholder={familyResources.length > 0 ? `Add another resource (${FAMILY_RESOURCE_OPTIONS.filter((opt) => !familyResources.includes(opt)).length} remaining)` : "Select family resource needs"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {FAMILY_RESOURCE_OPTIONS.filter((opt) => !familyResources.includes(opt)).map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
+                      {FAMILY_RESOURCE_OPTIONS.filter((opt) => !familyResources.includes(opt)).length > 0 ? (
+                        FAMILY_RESOURCE_OPTIONS.filter((opt) => !familyResources.includes(opt)).map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>All resources selected</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1011,15 +1178,19 @@ const IntakeForm = () => {
                 <div className="space-y-2">
                   <Label>Referral Concern</Label>
                   <p className="text-xs text-gray-600 mb-2">Choose all that apply (dropdown)</p>
-                  <div className="border rounded-lg p-3 min-h-[60px] bg-gray-50">
+                  <div className="border-2 border-gray-200 rounded-lg p-3 min-h-[60px] bg-gradient-to-br from-gray-50 to-white transition-all duration-200 hover:border-[#294a4a]/30">
                     {referralConcern.length === 0 ? (
-                      <p className="text-sm text-gray-400 italic">No concerns selected</p>
+                      <p className="text-sm text-gray-400 italic flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 animate-pulse" />
+                        No concerns selected
+                      </p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
-                        {referralConcern.map((concern) => (
+                        {referralConcern.map((concern, index) => (
                           <span
                             key={concern}
-                            className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600 text-white text-sm rounded-full"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 animate-slide-in"
+                            style={{ animationDelay: `${index * 0.1}s` }}
                           >
                             {concern}
                             <button
@@ -1031,7 +1202,7 @@ const IntakeForm = () => {
                                   referralConcern
                                 )
                               }
-                              className="ml-1 hover:text-red-200"
+                              className="ml-1 hover:text-red-200 hover:scale-110 transition-transform"
                             >
                               ×
                             </button>
@@ -1041,31 +1212,41 @@ const IntakeForm = () => {
                     )}
                   </div>
                   <Select
-                    onValueChange={(value) =>
+                    onValueChange={(value) => {
                       handleMultiSelectChange(
                         "service_needs.referral_concern",
                         value,
                         referralConcern
-                      )
-                    }
+                      );
+                    }}
+                    value=""
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select primary concern" />
+                    <SelectTrigger className="w-full h-12 animate-fade-in">
+                      <SelectValue placeholder={referralConcern.length > 0 ? `Add another concern (${REFERRAL_CONCERN_OPTIONS.filter((opt) => !referralConcern.includes(opt)).length} remaining)` : "Select primary concern"} />
                     </SelectTrigger>
                     <SelectContent className="max-h-[300px]">
-                      {REFERRAL_CONCERN_OPTIONS.filter((opt) => !referralConcern.includes(opt)).map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
+                      {REFERRAL_CONCERN_OPTIONS.filter((opt) => !referralConcern.includes(opt)).length > 0 ? (
+                        REFERRAL_CONCERN_OPTIONS.filter((opt) => !referralConcern.includes(opt)).map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>All concerns selected</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               {/* SECTION 6: Demographics (optional) */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">SECTION 6: Demographics (optional)</h3>
+              <div className="space-y-4 animate-fade-in-up">
+                <div className="flex items-center gap-2 pb-2 border-b-2 border-[#294a4a]/20">
+                  <div className="p-2 bg-[#294a4a]/10 rounded-lg">
+                    <FileText className="w-5 h-5 text-[#294a4a]" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">SECTION 6: Demographics (optional)</h3>
+                </div>
                 
                 {/* Sex at birth */}
                 <div className="space-y-2">
@@ -1168,8 +1349,13 @@ const IntakeForm = () => {
               </div>
 
               {/* SECTION 7: SAFETY CHECK */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">SECTION 7: SAFETY CHECK (Required)</h3>
+              <div className="space-y-4 animate-fade-in-up">
+                <div className="flex items-center gap-2 pb-2 border-b-2 border-[#294a4a]/20">
+                  <div className="p-2 bg-[#294a4a]/10 rounded-lg">
+                    <FileText className="w-5 h-5 text-[#294a4a]" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">SECTION 7: SAFETY CHECK (Required)</h3>
+                </div>
                 <p className="text-sm text-gray-600 mb-2">Is your child currently experiencing an immediate safety concern?</p>
                 <RadioGroup
                   value={watch("immediate_safety_concern")}
@@ -1200,8 +1386,13 @@ const IntakeForm = () => {
               </div>
 
               {/* SECTION 8: AUTHORIZATION */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">SECTION 8: AUTHORIZATION TO SHARE INFORMATION (Required)</h3>
+              <div className="space-y-4 animate-fade-in-up">
+                <div className="flex items-center gap-2 pb-2 border-b-2 border-[#294a4a]/20">
+                  <div className="p-2 bg-[#294a4a]/10 rounded-lg">
+                    <FileText className="w-5 h-5 text-[#294a4a]" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">SECTION 8: AUTHORIZATION TO SHARE INFORMATION (Required)</h3>
+                </div>
                 <div className="flex items-start space-x-3">
                   <Checkbox
                     id="authorization"

@@ -17,7 +17,8 @@ const RootRedirect = () => {
   }
 
   // Redirect based on authentication status
-  return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
+  // Non-authenticated users should go to intake form, authenticated users to dashboard
+  return <Navigate to={isAuthenticated ? "/dashboard" : "/intake"} replace />;
 };
 
 export default RootRedirect;

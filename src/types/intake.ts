@@ -20,7 +20,7 @@ export interface ParentGuardianContact {
 export type ServiceRequestType = "start_now" | "opt_in_future";
 
 export interface InsuranceInformation {
-  has_insurance: boolean;
+  has_insurance: "yes" | "no"; // Backend expects string enum, not boolean
   insurance_company?: string;
   policyholder_name?: string;
   relationship_to_student?: string;
@@ -51,9 +51,9 @@ export interface IntakeFormData {
   parent_guardian_contact: ParentGuardianContact;
   service_request_type: ServiceRequestType;
   insurance_information: InsuranceInformation;
-  service_needs?: ServiceNeeds;
+  service_needs: ServiceNeeds; // Made required to match backend
   demographics?: Demographics;
-  immediate_safety_concern: boolean;
+  immediate_safety_concern: "yes" | "no"; // Backend expects string enum, not boolean
   authorization_consent: boolean;
 }
 
