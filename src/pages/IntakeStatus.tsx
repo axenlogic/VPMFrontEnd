@@ -64,7 +64,7 @@ const IntakeStatus = () => {
   };
 
   return (
-    <div className="min-h-screen py-12 px-4" style={{ backgroundColor: 'var(--brand-color)' }}>
+    <div className="py-12 px-4" style={{ backgroundColor: 'var(--brand-color)' }}>
       <div className="max-w-2xl mx-auto">
         <Card>
           <CardHeader>

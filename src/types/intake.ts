@@ -1,10 +1,14 @@
 // Intake Form Types
 
 export interface StudentInformation {
+  first_name?: string;
+  last_name?: string;
   full_name: string;
   student_id?: string;
   date_of_birth: string;
-  grade_level: string;
+  grade_level?: string;
+  grade?: string;
+  school?: string;
 }
 
 export interface ParentGuardianContact {
@@ -26,10 +30,20 @@ export interface InsuranceInformation {
   insurance_card_back?: File | string;
 }
 
+export interface ServiceNeeds {
+  service_category: string[];
+  service_category_other?: string;
+  severity_of_concern?: "mild" | "moderate" | "severe";
+  type_of_service_needed?: string[];
+  family_resources?: string[];
+  referral_concern?: string[];
+}
+
 export interface Demographics {
-  sex_at_birth?: string;
-  race_ethnicity?: string;
-  other_race_ethnicity?: string;
+  sex_at_birth?: "male" | "female" | "other" | "prefer_not_to_answer";
+  race?: string[];
+  race_other?: string;
+  ethnicity?: string[];
 }
 
 export interface IntakeFormData {
@@ -37,6 +51,7 @@ export interface IntakeFormData {
   parent_guardian_contact: ParentGuardianContact;
   service_request_type: ServiceRequestType;
   insurance_information: InsuranceInformation;
+  service_needs?: ServiceNeeds;
   demographics?: Demographics;
   immediate_safety_concern: boolean;
   authorization_consent: boolean;

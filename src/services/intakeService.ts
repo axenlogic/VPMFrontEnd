@@ -43,10 +43,31 @@ export class IntakeService {
         });
       }
 
+      // Add service needs if provided
+      if (formData.service_needs) {
+        Object.entries(formData.service_needs).forEach(([key, value]) => {
+          if (!value) return;
+          if (Array.isArray(value)) {
+            value.forEach((item, index) => {
+              payload.append(`service_needs.${key}[${index}]`, String(item));
+            });
+          } else {
+            payload.append(`service_needs.${key}`, String(value));
+          }
+        });
+      }
+
       // Add demographics if provided
       if (formData.demographics) {
         Object.entries(formData.demographics).forEach(([key, value]) => {
-          if (value) payload.append(`demographics.${key}`, value);
+          if (!value) return;
+          if (Array.isArray(value)) {
+            value.forEach((item, index) => {
+              payload.append(`demographics.${key}[${index}]`, String(item));
+            });
+          } else {
+            payload.append(`demographics.${key}`, String(value));
+          }
         });
       }
 
