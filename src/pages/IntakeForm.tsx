@@ -16,6 +16,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { submitIntakeForm, clearSubmissionState } from "@/store/slices/intakeSlice";
 import { IntakeFormData } from "@/types/intake";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Dropdown options data
 const FAMILY_RESOURCE_OPTIONS = [
@@ -142,6 +143,7 @@ type IntakeFormValues = z.infer<typeof intakeFormSchema> & {
 const IntakeForm = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   
   // Redux state
   const { isSubmitting, submitError, submissionSuccess, submittedUuid } = useAppSelector(
@@ -533,30 +535,32 @@ const IntakeForm = () => {
                     )}
                   </div>
                   <p className="text-xs text-gray-500 text-left">
-                    💡 Please save this UUID. You'll need it to check your submission status.
+                    💡 Please save this UUID.{isAuthenticated && " You'll need it to check your submission status."}
                   </p>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 w-full pt-4 animate-fade-in-up animation-delay-400">
+                <div className={`flex flex-col sm:flex-row gap-3 w-full pt-4 animate-fade-in-up animation-delay-400 ${isAuthenticated ? '' : 'justify-center'}`}>
                   <Button
                     onClick={() => {
                       dispatch(clearSubmissionState());
                       window.location.reload();
                     }}
-                    className="flex-1 bg-[#294a4a] hover:bg-[#375b59] text-white h-12 text-base font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+                    className={`${isAuthenticated ? 'flex-1' : 'w-full sm:w-auto min-w-[200px]'} bg-[#294a4a] hover:bg-[#375b59] text-white h-12 text-base font-medium shadow-lg hover:shadow-xl transition-all duration-300`}
                   >
                     Submit Another Form
                   </Button>
-                  <Button
-                    onClick={() => {
-                      navigate(`/intake/status?uuid=${submittedUuid}`);
-                    }}
-                    variant="outline"
-                    className="flex-1 border-2 border-[#294a4a] text-[#294a4a] hover:bg-[#294a4a] hover:text-white h-12 text-base font-medium transition-all duration-300"
-                  >
-                    Check Status
-                  </Button>
+                  {isAuthenticated && (
+                    <Button
+                      onClick={() => {
+                        navigate(`/intake/status?uuid=${submittedUuid}`);
+                      }}
+                      variant="outline"
+                      className="flex-1 border-2 border-[#294a4a] text-[#294a4a] hover:bg-[#294a4a] hover:text-white h-12 text-base font-medium transition-all duration-300"
+                    >
+                      Check Status
+                    </Button>
+                  )}
                 </div>
 
                 {/* Decorative Elements */}

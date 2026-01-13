@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Loader2, Users, FileText, Activity, Calendar } from "lucide-react";
-import { DashboardService, DashboardSummary, TrendData, DistrictBreakdown, SchoolBreakdown } from "@/services/dashboardService";
+import { DashboardService, DashboardSummary, TrendData, DistrictBreakdown, SchoolBreakdown, District } from "@/services/dashboardService";
 import { toast } from "sonner";
 import SummaryCard from "@/components/dashboard/SummaryCard";
 import CSVDataChart from "@/components/dashboard/CSVDataChart";
@@ -12,6 +12,7 @@ const Dashboard = () => {
   const [trendData, setTrendData] = useState<TrendData[]>([]);
   const [districtBreakdown, setDistrictBreakdown] = useState<DistrictBreakdown[]>([]);
   const [schoolBreakdown, setSchoolBreakdown] = useState<SchoolBreakdown[]>([]);
+  const [districts, setDistricts] = useState<District[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionPeriod, setSessionPeriod] = useState("week");
   const [breakdownPeriod, setBreakdownPeriod] = useState("week");
@@ -19,7 +20,27 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      // Try to fetch real data, but fallback to dummy data if API fails
+      // Fetch districts data separately to ensure it's always attempted
+      let districtsData = null;
+      try {
+        districtsData = await DashboardService.getDistrictsSchools({
+          page: 1,
+          limit: 50,
+          include_forms: true,
+          forms_limit: 50,
+          sort_by: "name",
+          sort_order: "asc",
+        });
+        
+        if (districtsData && districtsData.districts) {
+          setDistricts(districtsData.districts);
+        }
+      } catch (districtsError: any) {
+        // Don't set districts if there's an error, let it remain null/empty
+        setDistricts(null);
+      }
+      
+      // Try to fetch other dashboard data, but don't let failures affect districts
       try {
         const [summaryData, trendsData, districtData, schoolData] = await Promise.all([
           DashboardService.getDashboardSummary(),
@@ -33,7 +54,6 @@ const Dashboard = () => {
         setSchoolBreakdown(schoolData);
       } catch (apiError: any) {
         // Use dummy data if API fails - silently fail, don't show error
-        // console.log("API not available, using dummy data");
         setSummary({
           total_opt_ins: 1247,
           total_referrals: 856,
@@ -70,6 +90,7 @@ const Dashboard = () => {
         ]);
         
         setSchoolBreakdown([]);
+        // Note: Don't reset districts here - they were already set above
       }
     } catch (error: any) {
       // Final fallback - use dummy data
@@ -310,9 +331,9 @@ const Dashboard = () => {
       {/* Third Row - Districts & Schools List */}
       <div className="mt-6">
         <DistrictsList
+          districts={districts || undefined}
           onFormClick={(form) => {
             // Handle form click - can navigate to form details or open modal
-            console.log("Form clicked:", form);
             // Example: navigate(`/admin/intake/${form.id}`);
           }}
         />

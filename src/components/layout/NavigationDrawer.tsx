@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { FileText, ClipboardList, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface NavigationDrawerProps {
   open: boolean;
@@ -17,8 +18,9 @@ interface NavigationDrawerProps {
 
 const NavigationDrawer = ({ open, onOpenChange }: NavigationDrawerProps) => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
-  const menuItems = [
+  const allMenuItems = [
     {
       title: "Intake Form",
       href: "/intake",
@@ -30,8 +32,14 @@ const NavigationDrawer = ({ open, onOpenChange }: NavigationDrawerProps) => {
       href: "/intake/status",
       icon: ClipboardList,
       description: "Check the status of your intake",
+      requiresAuth: true, // This item requires authentication
     },
   ];
+
+  // Filter menu items based on authentication status
+  const menuItems = allMenuItems.filter(
+    (item) => !item.requiresAuth || isAuthenticated
+  );
 
   const handleNavigation = (href: string) => {
     navigate(href);

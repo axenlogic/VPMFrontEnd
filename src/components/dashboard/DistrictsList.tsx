@@ -1,14 +1,16 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Building2, School, FileText, ChevronRight, Users, Calendar } from "lucide-react";
+import { Building2, School, FileText, ChevronRight, Users, Calendar, Copy, Check, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 // Type definitions for API integration
 export interface IntakeForm {
   id: string;
-  studentName: string;
+  studentName: string | null;
   submittedDate: string;
-  status: "pending" | "processed" | "active";
+  status: "pending" | "processed" | "active" | "submitted";
   studentUuid: string;
 }
 
@@ -35,255 +37,8 @@ interface DistrictsListProps {
 }
 
 const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
-  // Dummy data - will be replaced with API data
-  const dummyDistricts: District[] = districts || [
-    {
-      id: "1",
-      name: "Springfield District",
-      totalSchools: 12,
-      totalStudents: 2450,
-      activeStudents: 890,
-      schools: [
-        {
-          id: "1-1",
-          name: "Springfield Elementary",
-          totalStudents: 450,
-          activeStudents: 180,
-          forms: [
-            {
-              id: "f1",
-              studentName: "John Doe",
-              submittedDate: "2024-01-15",
-              status: "active",
-              studentUuid: "uuid-001",
-            },
-            {
-              id: "f2",
-              studentName: "Jane Smith",
-              submittedDate: "2024-01-14",
-              status: "processed",
-              studentUuid: "uuid-002",
-            },
-            {
-              id: "f3",
-              studentName: "Mike Johnson",
-              submittedDate: "2024-01-13",
-              status: "pending",
-              studentUuid: "uuid-003",
-            },
-          ],
-        },
-        {
-          id: "1-2",
-          name: "Springfield Middle School",
-          totalStudents: 680,
-          activeStudents: 250,
-          forms: [
-            {
-              id: "f4",
-              studentName: "Sarah Williams",
-              submittedDate: "2024-01-16",
-              status: "active",
-              studentUuid: "uuid-004",
-            },
-            {
-              id: "f5",
-              studentName: "David Brown",
-              submittedDate: "2024-01-12",
-              status: "processed",
-              studentUuid: "uuid-005",
-            },
-          ],
-        },
-        {
-          id: "1-3",
-          name: "Springfield High School",
-          totalStudents: 1320,
-          activeStudents: 460,
-          forms: [
-            {
-              id: "f6",
-              studentName: "Emily Davis",
-              submittedDate: "2024-01-17",
-              status: "active",
-              studentUuid: "uuid-006",
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: "2",
-      name: "Riverside District",
-      totalSchools: 10,
-      totalStudents: 1980,
-      activeStudents: 755,
-      schools: [
-        {
-          id: "2-1",
-          name: "Riverside Elementary",
-          totalStudents: 520,
-          activeStudents: 200,
-          forms: [
-            {
-              id: "f7",
-              studentName: "Alex Martinez",
-              submittedDate: "2024-01-18",
-              status: "active",
-              studentUuid: "uuid-007",
-            },
-            {
-              id: "f8",
-              studentName: "Lisa Anderson",
-              submittedDate: "2024-01-17",
-              status: "pending",
-              studentUuid: "uuid-008",
-            },
-          ],
-        },
-        {
-          id: "2-2",
-          name: "Riverside Middle School",
-          totalStudents: 720,
-          activeStudents: 280,
-          forms: [
-            {
-              id: "f9",
-              studentName: "Tom Wilson",
-              submittedDate: "2024-01-16",
-              status: "processed",
-              studentUuid: "uuid-009",
-            },
-          ],
-        },
-        {
-          id: "2-3",
-          name: "Riverside High School",
-          totalStudents: 740,
-          activeStudents: 275,
-          forms: [
-            {
-              id: "f10",
-              studentName: "Olivia Taylor",
-              submittedDate: "2024-01-15",
-              status: "active",
-              studentUuid: "uuid-010",
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: "3",
-      name: "Oakwood District",
-      totalSchools: 8,
-      totalStudents: 1650,
-      activeStudents: 535,
-      schools: [
-        {
-          id: "3-1",
-          name: "Oakwood Elementary",
-          totalStudents: 380,
-          activeStudents: 150,
-          forms: [
-            {
-              id: "f11",
-              studentName: "James Lee",
-              submittedDate: "2024-01-19",
-              status: "active",
-              studentUuid: "uuid-011",
-            },
-          ],
-        },
-        {
-          id: "3-2",
-          name: "Oakwood Middle School",
-          totalStudents: 520,
-          activeStudents: 200,
-          forms: [
-            {
-              id: "f12",
-              studentName: "Sophia Garcia",
-              submittedDate: "2024-01-18",
-              status: "pending",
-              studentUuid: "uuid-012",
-            },
-          ],
-        },
-        {
-          id: "3-3",
-          name: "Oakwood High School",
-          totalStudents: 750,
-          activeStudents: 185,
-          forms: [
-            {
-              id: "f13",
-              studentName: "Noah Rodriguez",
-              submittedDate: "2024-01-17",
-              status: "processed",
-              studentUuid: "uuid-013",
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: "4",
-      name: "Maple Valley District",
-      totalSchools: 6,
-      totalStudents: 980,
-      activeStudents: 265,
-      schools: [
-        {
-          id: "4-1",
-          name: "Maple Valley Elementary",
-          totalStudents: 320,
-          activeStudents: 120,
-          forms: [
-            {
-              id: "f14",
-              studentName: "Ava Thompson",
-              submittedDate: "2024-01-20",
-              status: "active",
-              studentUuid: "uuid-014",
-            },
-          ],
-        },
-        {
-          id: "4-2",
-          name: "Maple Valley Middle School",
-          totalStudents: 380,
-          activeStudents: 95,
-          forms: [
-            {
-              id: "f15",
-              studentName: "Lucas White",
-              submittedDate: "2024-01-19",
-              status: "pending",
-              studentUuid: "uuid-015",
-            },
-          ],
-        },
-        {
-          id: "4-3",
-          name: "Maple Valley High School",
-          totalStudents: 280,
-          activeStudents: 50,
-          forms: [
-            {
-              id: "f16",
-              studentName: "Isabella Harris",
-              submittedDate: "2024-01-18",
-              status: "processed",
-              studentUuid: "uuid-016",
-            },
-          ],
-        },
-      ],
-    },
-  ];
-
-  const displayDistricts = districts || dummyDistricts;
+  // Use API data or show empty state
+  const displayDistricts = districts || [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -293,6 +48,8 @@ const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
         return "bg-blue-50 text-blue-700 border-blue-200";
       case "pending":
         return "bg-orange-50 text-orange-700 border-orange-200";
+      case "submitted":
+        return "bg-purple-50 text-purple-700 border-purple-200";
       default:
         return "bg-gray-50 text-gray-700 border-gray-200";
     }
@@ -306,8 +63,32 @@ const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
         return "Completed";
       case "pending":
         return "Opt-ins";
+      case "submitted":
+        return "Submitted";
       default:
         return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
+
+  const getStudentDisplayName = (studentName: string | null, studentUuid: string) => {
+    if (studentName && studentName.trim()) {
+      return studentName;
+    }
+    // If name is null or empty, show a formatted UUID (first 8 chars)
+    const shortUuid = studentUuid.substring(0, 8);
+    return `Student ${shortUuid}...`;
+  };
+
+  const [copiedUuid, setCopiedUuid] = useState<string | null>(null);
+
+  const handleCopyUuid = async (uuid: string) => {
+    try {
+      await navigator.clipboard.writeText(uuid);
+      setCopiedUuid(uuid);
+      toast.success("UUID copied to clipboard!");
+      setTimeout(() => setCopiedUuid(null), 2000);
+    } catch (err) {
+      toast.error("Failed to copy UUID");
     }
   };
 
@@ -331,8 +112,23 @@ const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <Accordion type="multiple" className="w-full">
-          {displayDistricts.map((district, districtIndex) => (
+        {displayDistricts.length === 0 ? (
+          <div className="p-12 text-center">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <div className="p-4 bg-gray-100 rounded-full">
+                <Building2 className="h-8 w-8 text-gray-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Districts Found</h3>
+                <p className="text-sm text-gray-500">
+                  There are no districts available at the moment. Please check back later.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <Accordion type="multiple" className="w-full">
+            {displayDistricts.map((district, districtIndex) => (
             <AccordionItem
               key={district.id}
               value={district.id}
@@ -346,22 +142,24 @@ const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
                     </div>
                     <div className="text-left">
                       <h3 className="text-base font-semibold text-gray-900 mb-2">{district.name}</h3>
-                      <div className="flex items-center gap-5 flex-wrap">
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100">
-                          <School className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-900">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <School className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                          <span className="font-medium text-gray-700">
                             {district.totalSchools} Schools
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50 border border-purple-100">
-                          <Users className="h-4 w-4 text-purple-600" />
-                          <span className="text-sm font-medium text-purple-900">
+                        <span className="text-gray-300">|</span>
+                        <div className="flex items-center gap-1.5">
+                          <Users className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                          <span className="font-medium text-gray-700">
                             {district.totalStudents.toLocaleString()} Students
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#294a4a]/10 border border-[#294a4a]/20">
-                          <div className="h-2 w-2 rounded-full bg-[#294a4a]"></div>
-                          <span className="text-sm font-medium text-[#294a4a]">
+                        <span className="text-gray-300">|</span>
+                        <div className="flex items-center gap-1.5">
+                          <Activity className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                          <span className="font-medium text-gray-700">
                             {district.activeStudents.toLocaleString()} Active
                           </span>
                         </div>
@@ -393,16 +191,24 @@ const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
                                 <h4 className="text-sm font-semibold text-gray-900 mb-1.5">
                                   {school.name}
                                 </h4>
-                                <div className="flex items-center gap-4 flex-wrap">
-                                  <span className="text-sm text-gray-600 font-normal">
-                                    {school.totalStudents} Students
-                                  </span>
-                                  <span className="text-sm font-medium text-[#375b59]">
-                                    {school.activeStudents} Active
-                                  </span>
-                                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200">
-                                    <FileText className="h-3.5 w-3.5 text-amber-600" />
-                                    <span className="text-xs font-medium text-amber-900">
+                                <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
+                                  <div className="flex items-center gap-1.5">
+                                    <Users className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                    <span className="font-medium text-gray-700">
+                                      {school.totalStudents} Students
+                                    </span>
+                                  </div>
+                                  <span className="text-gray-300">|</span>
+                                  <div className="flex items-center gap-1.5">
+                                    <Activity className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                    <span className="font-medium text-gray-700">
+                                      {school.activeStudents} Active
+                                    </span>
+                                  </div>
+                                  <span className="text-gray-300">|</span>
+                                  <div className="flex items-center gap-1.5">
+                                    <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                    <span className="font-medium text-gray-700">
                                       {school.forms.length} Forms
                                     </span>
                                   </div>
@@ -411,47 +217,102 @@ const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
                             </div>
                           </div>
                         </AccordionTrigger>
-                        <AccordionContent className="px-5 pb-4">
-                          <div className="ml-12 space-y-3 animate-in slide-in-from-top-2 duration-300">
+                        <AccordionContent className="px-5 pb-5">
+                          <div className="ml-12 space-y-4 animate-in slide-in-from-top-2 duration-300">
                             {school.forms.length > 0 ? (
                               school.forms.map((form) => (
                                 <div
                                   key={form.id}
                                   onClick={() => onFormClick?.(form)}
-                                  className="group flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-white to-gray-50 border-2 border-gray-200 hover:border-[#294a4a] hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:scale-[1.02] active:scale-[0.98]"
+                                  className="group relative flex items-center justify-between p-5 rounded-2xl bg-white border border-gray-200 hover:border-[#294a4a]/40 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden"
                                 >
-                                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                                    <div className="p-2.5 rounded-lg bg-gray-100 border border-gray-200 group-hover:bg-gray-200 group-hover:scale-110 transition-all duration-300">
-                                      <FileText className="h-4 w-4 text-gray-700" />
+                                  {/* Subtle background gradient on hover */}
+                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#294a4a]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                  
+                                  {/* Left Section - Icon and Content */}
+                                  <div className="flex items-start gap-5 flex-1 min-w-0 relative z-10">
+                                    {/* Icon Container */}
+                                    <div className="flex-shrink-0 mt-0.5">
+                                      <div className="p-3.5 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 group-hover:from-[#294a4a]/10 group-hover:to-[#294a4a]/5 group-hover:border-[#294a4a]/20 transition-all duration-300 shadow-sm">
+                                        <FileText className="h-5 w-5 text-gray-600 group-hover:text-[#294a4a] transition-colors duration-300" />
+                                      </div>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-semibold text-gray-900 mb-1.5">
-                                        {form.studentName}
-                                      </p>
-                                      <div className="flex items-center gap-3 flex-wrap">
-                                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100">
-                                          <Calendar className="h-3.5 w-3.5 text-gray-600" />
-                                          <span className="text-xs font-normal text-gray-700">
+                                    
+                                    {/* Content Section */}
+                                    <div className="flex-1 min-w-0 space-y-3">
+                                      {/* Student Name */}
+                                      <div>
+                                        <p className="text-base font-semibold text-gray-900 mb-2 leading-tight">
+                                          {getStudentDisplayName(form.studentName, form.studentUuid)}
+                                        </p>
+                                      </div>
+                                      
+                                      {/* Metadata Row - Simple inline format */}
+                                      <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
+                                        {/* Date with icon */}
+                                        <div className="flex items-center gap-1.5">
+                                          <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                          <span className="font-medium text-gray-700">
                                             {formatDate(form.submittedDate)}
                                           </span>
                                         </div>
-                                        <span className="text-xs text-gray-400 font-mono bg-gray-100 px-2 py-1 rounded-md">
-                                          {form.studentUuid}
-                                        </span>
+                                        
+                                        {/* Separator */}
+                                        <span className="text-gray-300">|</span>
+                                        
+                                        {/* UUID with icon - Clickable */}
+                                        <div
+                                          onClick={(e) => {
+                                            e.stopPropagation(); // Prevent form click
+                                            handleCopyUuid(form.studentUuid);
+                                          }}
+                                          className={cn(
+                                            "flex items-center gap-1.5 cursor-pointer transition-all duration-200 group/uuid",
+                                            copiedUuid === form.studentUuid ? "text-green-600" : "text-gray-500 hover:text-[#294a4a]"
+                                          )}
+                                          title={`Click to copy: ${form.studentUuid}`}
+                                        >
+                                          {copiedUuid === form.studentUuid ? (
+                                            <>
+                                              <Check className="h-4 w-4 flex-shrink-0 text-green-600" />
+                                              <span className="font-mono font-medium">Copied!</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Copy className="h-4 w-4 flex-shrink-0 text-gray-500 group-hover/uuid:text-[#294a4a] transition-colors" />
+                                              <span className="font-mono truncate max-w-[200px]">{form.studentUuid}</span>
+                                            </>
+                                          )}
+                                        </div>
+                                        
+                                        {/* Name Pending Badge */}
+                                        {!form.studentName && (
+                                          <>
+                                            <span className="text-gray-300">|</span>
+                                            <span className="text-xs font-medium text-amber-600">
+                                              Name Pending
+                                            </span>
+                                          </>
+                                        )}
                                       </div>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-3">
+                                  
+                                  {/* Right Section - Status and Arrow */}
+                                  <div className="flex items-center gap-4 flex-shrink-0 relative z-10">
+                                    {/* Status Badge */}
                                     <span
                                       className={cn(
-                                        "px-3 py-1.5 rounded-lg text-xs font-medium border",
+                                        "px-4 py-2 rounded-xl text-sm font-semibold border shadow-sm",
                                         getStatusColor(form.status)
                                       )}
                                     >
                                       {getStatusLabel(form.status)}
                                     </span>
-                                    <div className="p-2 rounded-lg bg-gray-100 group-hover:bg-[#294a4a] transition-colors duration-300">
-                                      <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-white group-hover:translate-x-1 transition-all duration-300" />
+                                    
+                                    {/* Arrow Icon */}
+                                    <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 group-hover:bg-[#294a4a] group-hover:border-[#294a4a] transition-all duration-300 shadow-sm">
+                                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-white group-hover:translate-x-0.5 transition-all duration-300" />
                                     </div>
                                   </div>
                                 </div>
@@ -472,8 +333,9 @@ const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
                 </div>
               </AccordionContent>
             </AccordionItem>
-          ))}
-        </Accordion>
+            ))}
+          </Accordion>
+        )}
       </CardContent>
     </Card>
   );
