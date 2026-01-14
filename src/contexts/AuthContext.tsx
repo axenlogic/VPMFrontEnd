@@ -35,18 +35,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (storedToken && storedUser) {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
+        } else {
+          // No token found, ensure state is cleared
+          setToken(null);
+          setUser(null);
         }
       } catch (error) {
         console.error("Error loading auth data:", error);
         // Clear corrupted data
         localStorage.removeItem("authToken");
         localStorage.removeItem("authUser");
+        setToken(null);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
 
     initializeAuth();
+
+    // Listen for storage changes (cross-tab changes)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'authToken') {
+        if (!e.newValue) {
+          // Token was cleared in another tab, update state
+          setToken(null);
+          setUser(null);
+        } else {
+          // Token was set in another tab, update state
+          const storedUser = localStorage.getItem("authUser");
+          if (storedUser) {
+            try {
+              setToken(e.newValue);
+              setUser(JSON.parse(storedUser));
+            } catch (error) {
+              console.error("Error parsing user data:", error);
+            }
+          }
+        }
+      }
+    };
+
+    // Listen for custom event when token is cleared by API interceptor (same-tab)
+    const handleAuthTokenCleared = () => {
+      // Token was cleared by API interceptor, update state immediately
+      setToken(null);
+      setUser(null);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('authTokenCleared', handleAuthTokenCleared);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('authTokenCleared', handleAuthTokenCleared);
+    };
   }, []);
 
   const login = (newToken: string, newUser: User) => {

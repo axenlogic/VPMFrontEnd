@@ -70,3 +70,29 @@ export interface IntakeStatusResponse {
   processed_date?: string;
 }
 
+/**
+ * Intake Form Details Response
+ * Complete form data retrieved by student UUID or form ID
+ * This includes all PHI (Personally Identifiable Information)
+ */
+export interface IntakeFormDetailsResponse {
+  id: string; // Form ID
+  student_uuid: string;
+  status: "pending" | "processed" | "active" | "submitted";
+  submitted_date: string;
+  processed_date?: string;
+
+  // Complete form data
+  student_information: StudentInformation;
+  parent_guardian_contact: ParentGuardianContact;
+  service_request_type: ServiceRequestType;
+  insurance_information: InsuranceInformation & {
+    insurance_card_front_url?: string; // URL to view/download front card
+    insurance_card_back_url?: string; // URL to view/download back card
+  };
+  service_needs: ServiceNeeds;
+  demographics?: Demographics;
+  immediate_safety_concern: "yes" | "no";
+  authorization_consent: boolean;
+}
+

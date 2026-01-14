@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { IntakeService } from '@/services/intakeService';
-import { IntakeFormData, IntakeSubmissionResponse, IntakeStatusResponse } from '@/types/intake';
+import { IntakeFormData, IntakeSubmissionResponse, IntakeStatusResponse, IntakeFormDetailsResponse } from '@/types/intake';
 
 /**
  * Intake Form State Interface
@@ -17,6 +17,11 @@ interface IntakeState {
   statusCheckError: string | null;
   statusData: IntakeStatusResponse | null;
 
+  // Form details state (for viewing form details)
+  isFetchingDetails: boolean;
+  detailsError: string | null;
+  formDetails: IntakeFormDetailsResponse | null;
+
   // Form data (for potential draft saving)
   formData: Partial<IntakeFormData> | null;
 }
@@ -29,6 +34,9 @@ const initialState: IntakeState = {
   isCheckingStatus: false,
   statusCheckError: null,
   statusData: null,
+  isFetchingDetails: false,
+  detailsError: null,
+  formDetails: null,
   formData: null,
 };
 
@@ -81,6 +89,31 @@ export const checkIntakeStatus = createAsyncThunk<
 );
 
 /**
+ * Async Thunk: Get Intake Form Details
+ * 
+ * Fetches complete form details by student UUID or form ID.
+ * This is an authenticated endpoint - requires JWT token.
+ * Returns PHI (Personally Identifiable Information).
+ */
+export const getIntakeFormDetails = createAsyncThunk<
+  IntakeFormDetailsResponse,
+  string,
+  { rejectValue: string }
+>(
+  'intake/getFormDetails',
+  async (identifier, { rejectWithValue }) => {
+    try {
+      const response = await IntakeService.getIntakeFormDetails(identifier);
+      return response;
+    } catch (error: any) {
+      // Extract error message from API response or use default
+      const errorMessage = error?.response?.data?.detail || error?.message || 'Failed to fetch intake form details. Please try again.';
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+/**
  * Intake Slice
  * 
  * Manages all intake form related state including:
@@ -111,6 +144,15 @@ const intakeSlice = createSlice({
       state.isCheckingStatus = false;
       state.statusCheckError = null;
       state.statusData = null;
+    },
+
+    /**
+     * Clear form details state
+     */
+    clearFormDetails: (state) => {
+      state.isFetchingDetails = false;
+      state.detailsError = null;
+      state.formDetails = null;
     },
 
     /**
@@ -171,12 +213,31 @@ const intakeSlice = createSlice({
         state.statusCheckError = action.payload || 'Failed to check intake status';
         state.statusData = null;
       });
+
+    // Get form details reducers
+    builder
+      .addCase(getIntakeFormDetails.pending, (state) => {
+        state.isFetchingDetails = true;
+        state.detailsError = null;
+        state.formDetails = null;
+      })
+      .addCase(getIntakeFormDetails.fulfilled, (state, action) => {
+        state.isFetchingDetails = false;
+        state.formDetails = action.payload;
+        state.detailsError = null;
+      })
+      .addCase(getIntakeFormDetails.rejected, (state, action) => {
+        state.isFetchingDetails = false;
+        state.detailsError = action.payload || 'Failed to fetch intake form details';
+        state.formDetails = null;
+      });
   },
 });
 
 export const {
   clearSubmissionState,
   clearStatusState,
+  clearFormDetails,
   saveFormDraft,
   clearFormDraft,
   resetIntakeState,

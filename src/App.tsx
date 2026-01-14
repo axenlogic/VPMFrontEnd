@@ -28,7 +28,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <ReduxProvider store={store}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />

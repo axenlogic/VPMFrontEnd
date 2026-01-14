@@ -291,7 +291,7 @@ export class DashboardService {
         });
       }
       const response = await api.get(`/api/v1/dashboard/districts-schools?${params.toString()}`);
-      
+
       // Get response data
       let responseData: DistrictsSchoolsResponse;
       if (response.data && response.data.data) {
@@ -301,7 +301,7 @@ export class DashboardService {
       } else {
         responseData = response.data;
       }
-      
+
       // Transform snake_case API response to camelCase for frontend
       const transformedDistricts: District[] = responseData.districts.map((district) => ({
         id: district.id,
@@ -323,7 +323,7 @@ export class DashboardService {
           })),
         })),
       }));
-      
+
       return {
         districts: transformedDistricts,
         pagination: responseData.pagination,

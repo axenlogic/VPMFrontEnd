@@ -10,6 +10,9 @@ const api = axios.create({
   },
 });
 
+// Track if we're already handling a 401 to prevent multiple redirects
+let isHandling401 = false;
+
 // Add JWT token to requests if available
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('authToken');
@@ -25,12 +28,40 @@ api.interceptors.response.use(
   (error) => {
     // Handle 401 Unauthorized - token expired or invalid
     if (error.response?.status === 401) {
-      // Clear invalid token
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('authUser');
-      // Redirect to login if not already there
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      // Prevent multiple simultaneous 401 handlers
+      if (isHandling401) {
+        return Promise.reject(error);
+      }
+
+      isHandling401 = true;
+
+      // Only clear token and redirect if we're not on a public route
+      const publicRoutes = ['/login', '/signup', '/intake', '/intake/status', '/verify-email', '/forgot-password', '/reset-password'];
+      const currentPath = window.location.pathname;
+      const isPublicRoute = publicRoutes.some(route => currentPath.startsWith(route));
+
+      if (!isPublicRoute) {
+        // Get the old token value before clearing
+        const oldToken = localStorage.getItem('authToken');
+
+        // Clear invalid token
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('authUser');
+
+        // Dispatch a custom event to notify AuthContext (storage events only fire for cross-tab changes)
+        window.dispatchEvent(new CustomEvent('authTokenCleared', {
+          detail: { reason: '401_unauthorized' }
+        }));
+
+        // Use a small delay to allow state updates before redirect
+        setTimeout(() => {
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          isHandling401 = false;
+        }, 100);
+      } else {
+        isHandling401 = false;
       }
     }
     return Promise.reject(error);

@@ -4,6 +4,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Building2, School, FileText, ChevronRight, Users, Calendar, Copy, Check, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import IntakeFormDetailsModal from "@/components/intake/IntakeFormDetailsModal";
 
 // Type definitions for API integration
 export interface IntakeForm {
@@ -39,6 +40,18 @@ interface DistrictsListProps {
 const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
   // Use API data or show empty state
   const displayDistricts = districts || [];
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedFormUuid, setSelectedFormUuid] = useState<string | null>(null);
+
+  const handleFormClick = (form: IntakeForm) => {
+    // Set the selected form UUID and open modal
+    setSelectedFormUuid(form.studentUuid);
+    setIsModalOpen(true);
+    // Also call the optional onFormClick callback if provided
+    onFormClick?.(form);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -102,6 +115,7 @@ const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
   };
 
   return (
+    <>
     <Card className="bg-white border border-gray-200 shadow-lg overflow-hidden">
       <CardHeader className="pb-5 bg-gradient-to-r from-[#294a4a] to-[#375b59] text-white">
         <CardTitle className="text-xl font-semibold flex items-center gap-3">
@@ -223,7 +237,7 @@ const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
                               school.forms.map((form) => (
                                 <div
                                   key={form.id}
-                                  onClick={() => onFormClick?.(form)}
+                                  onClick={() => handleFormClick(form)}
                                   className="group relative flex items-center justify-between p-5 rounded-2xl bg-white border border-gray-200 hover:border-[#294a4a]/40 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden"
                                 >
                                   {/* Subtle background gradient on hover */}
@@ -338,6 +352,16 @@ const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
         )}
       </CardContent>
     </Card>
+
+    {/* Intake Form Details Modal */}
+    {selectedFormUuid && (
+      <IntakeFormDetailsModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        studentUuid={selectedFormUuid}
+      />
+    )}
+    </>
   );
 };
 
