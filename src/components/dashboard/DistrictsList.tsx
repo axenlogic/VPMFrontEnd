@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Building2, School, FileText, ChevronRight, Users, Calendar, Copy, Check, Activity } from "lucide-react";
@@ -38,8 +38,13 @@ interface DistrictsListProps {
 }
 
 const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
-  // Use API data or show empty state
-  const displayDistricts = districts || [];
+  const [localDistricts, setLocalDistricts] = useState<District[]>(districts || []);
+
+  useEffect(() => {
+    setLocalDistricts(districts || []);
+  }, [districts]);
+
+  const displayDistricts = localDistricts;
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,6 +56,20 @@ const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
     setIsModalOpen(true);
     // Also call the optional onFormClick callback if provided
     onFormClick?.(form);
+  };
+
+  const handleStatusUpdated = (studentUuid: string, status: IntakeForm["status"]) => {
+    setLocalDistricts((prev) =>
+      prev.map((district) => ({
+        ...district,
+        schools: district.schools.map((school) => ({
+          ...school,
+          forms: school.forms.map((form) =>
+            form.studentUuid === studentUuid ? { ...form, status } : form
+          ),
+        })),
+      }))
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -359,6 +378,7 @@ const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         studentUuid={selectedFormUuid}
+        onStatusChange={(status) => handleStatusUpdated(selectedFormUuid, status)}
       />
     )}
     </>

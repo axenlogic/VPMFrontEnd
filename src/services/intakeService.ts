@@ -225,6 +225,38 @@ export class IntakeService {
   }
 
   /**
+   * Update intake form status
+   * Authenticated endpoint - requires JWT token
+   *
+   * @param identifier - Student UUID or form ID
+   * @param status - New status value
+   * @returns Promise with updated status payload
+   */
+  static async updateIntakeStatus(
+    identifier: string,
+    status: "pending" | "processed" | "active"
+  ): Promise<{ status: "pending" | "processed" | "active" }> {
+    try {
+      const response = await api.put(`/api/v1/intake/status/${identifier}`, { status });
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail);
+      }
+      if (error.response?.status === 404) {
+        throw new Error("Intake form not found. Please verify the identifier and try again.");
+      }
+      if (error.response?.status === 403) {
+        throw new Error("You do not have permission to update this intake form status.");
+      }
+      if (error.message === "Network Error") {
+        throw new Error("Network error. Please check your connection and try again.");
+      }
+      throw new Error("Failed to update intake form status. Please try again.");
+    }
+  }
+
+  /**
    * Update intake form
    * Authenticated endpoint - requires JWT token
    * 
