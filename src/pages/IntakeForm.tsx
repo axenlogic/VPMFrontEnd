@@ -81,35 +81,29 @@ const intakeFormSchema = z.object({
     required_error: "Service request type is required",
   }),
   // Section 4: Insurance Information
-  insurance_information: z.object({
-    has_insurance: z.enum(["yes", "no"], {
-      required_error: "Insurance information is required",
-    }),
-    insurance_company: z.string().optional(),
-    policyholder_name: z.string().optional(),
-    relationship_to_student: z.string().optional(),
-    member_id: z.string().optional(),
-    group_number: z.string().optional(),
-  }).refine((data) => {
-    if (data.has_insurance === "yes") {
-      return !!data.insurance_company && !!data.policyholder_name && !!data.member_id;
-    }
-    return true;
-  }, {
-    message: "Insurance company, policyholder name, and member ID are required when insurance is selected",
-    path: ["insurance_company"],
-  }),
+  insurance_information: z
+    .object({
+      has_insurance: z.enum(["yes", "no"], {
+        required_error: "Insurance information is required",
+      }),
+      insurance_company: z.string().optional(),
+      policyholder_name: z.string().optional(),
+      relationship_to_student: z.string().optional(),
+      member_id: z.string().optional(),
+      group_number: z.string().optional(),
+    })
+    .optional(),
   // Section 5: Service Needs
-  service_needs: z.object({
-    service_category: z.array(z.string()).min(1, "At least one service category is required"),
-    service_category_other: z.string().optional(),
-    severity_of_concern: z.enum(["mild", "moderate", "severe"], {
-      required_error: "Severity of concern is required",
-    }),
-    type_of_service_needed: z.array(z.string()).min(1, "At least one type of service is required"),
-    family_resources: z.array(z.string()).optional(),
-    referral_concern: z.array(z.string()).optional(),
-  }),
+  service_needs: z
+    .object({
+      service_category: z.array(z.string()).optional(),
+      service_category_other: z.string().optional(),
+      severity_of_concern: z.enum(["mild", "moderate", "severe"]).optional(),
+      type_of_service_needed: z.array(z.string()).optional(),
+      family_resources: z.array(z.string()).optional(),
+      referral_concern: z.array(z.string()).optional(),
+    })
+    .optional(),
   // Section 6: Demographics (optional)
   demographics: z.object({
     sex_at_birth: z.enum(["male", "female", "other", "prefer_not_to_answer"]).optional(),
@@ -120,16 +114,90 @@ const intakeFormSchema = z.object({
   // Section 7: Safety Check
   immediate_safety_concern: z.enum(["yes", "no"], {
     required_error: "Safety concern response is required",
-  }),
+  }).optional(),
   // Section 8: Authorization
-  authorization_consent: z.boolean().refine((val) => val === true, {
-    message: "You must authorize to proceed",
-  }),
+  authorization_consent: z.boolean().optional(),
+}).superRefine((data, ctx) => {
+  if (data.service_request_type !== "start_now") {
+    return;
+  }
+
+  if (!data.insurance_information?.has_insurance) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Insurance information is required",
+      path: ["insurance_information", "has_insurance"],
+    });
+  }
+
+  if (data.insurance_information?.has_insurance === "yes") {
+    if (!data.insurance_information.insurance_company) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Insurance company is required",
+        path: ["insurance_information", "insurance_company"],
+      });
+    }
+    if (!data.insurance_information.policyholder_name) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Policyholder name is required",
+        path: ["insurance_information", "policyholder_name"],
+      });
+    }
+    if (!data.insurance_information.member_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Member ID is required",
+        path: ["insurance_information", "member_id"],
+      });
+    }
+  }
+
+  if (!data.service_needs?.service_category || data.service_needs.service_category.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "At least one service category is required",
+      path: ["service_needs", "service_category"],
+    });
+  }
+
+  if (!data.service_needs?.severity_of_concern) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Severity of concern is required",
+      path: ["service_needs", "severity_of_concern"],
+    });
+  }
+
+  if (!data.service_needs?.type_of_service_needed || data.service_needs.type_of_service_needed.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "At least one type of service is required",
+      path: ["service_needs", "type_of_service_needed"],
+    });
+  }
+
+  if (!data.immediate_safety_concern) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Safety concern response is required",
+      path: ["immediate_safety_concern"],
+    });
+  }
+
+  if (data.authorization_consent !== true) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "You must authorize to proceed",
+      path: ["authorization_consent"],
+    });
+  }
 });
 
 type IntakeFormValues = z.infer<typeof intakeFormSchema> & {
-  insurance_information: {
-    has_insurance: "yes" | "no";
+  insurance_information?: {
+    has_insurance?: "yes" | "no";
     insurance_company?: string;
     policyholder_name?: string;
     relationship_to_student?: string;
@@ -225,6 +293,8 @@ const IntakeForm = () => {
     },
   });
 
+  const serviceRequestType = watch("service_request_type");
+  const isStartNow = serviceRequestType === "start_now";
   const hasInsurance = watch("insurance_information.has_insurance") === "yes";
   const immediateSafetyConcern = watch("immediate_safety_concern") === "yes";
   const serviceCategory = watch("service_needs.service_category") || [];
@@ -264,6 +334,18 @@ const IntakeForm = () => {
     // Transform form data to match API expected format
     // Backend expects "yes"/"no" strings for has_insurance and immediate_safety_concern
     // Form validation ensures required fields are present
+    const insuranceInformation = data.insurance_information || { has_insurance: "no" };
+    const serviceNeeds = data.service_needs || {
+      service_category: [],
+      service_category_other: "",
+      severity_of_concern: "mild",
+      type_of_service_needed: [],
+      family_resources: [],
+      referral_concern: [],
+    };
+    const immediateSafetyConcernValue = data.immediate_safety_concern || "no";
+    const authorizationConsentValue = data.authorization_consent ?? false;
+
     const formData: IntakeFormData = {
       student_information: {
         first_name: data.student_information.first_name,
@@ -281,26 +363,26 @@ const IntakeForm = () => {
       },
       service_request_type: data.service_request_type,
       insurance_information: {
-        has_insurance: data.insurance_information.has_insurance, // Keep as "yes"/"no" string
-        insurance_company: data.insurance_information.insurance_company,
-        policyholder_name: data.insurance_information.policyholder_name,
-        relationship_to_student: data.insurance_information.relationship_to_student,
-        member_id: data.insurance_information.member_id,
-        group_number: data.insurance_information.group_number,
+        has_insurance: insuranceInformation.has_insurance || "no", // Keep as "yes"/"no" string
+        insurance_company: insuranceInformation.insurance_company,
+        policyholder_name: insuranceInformation.policyholder_name,
+        relationship_to_student: insuranceInformation.relationship_to_student,
+        member_id: insuranceInformation.member_id,
+        group_number: insuranceInformation.group_number,
         insurance_card_front: insuranceCardFront || undefined,
         insurance_card_back: insuranceCardBack || undefined,
       },
       service_needs: {
-        service_category: data.service_needs.service_category,
-        service_category_other: data.service_needs.service_category_other,
-        severity_of_concern: data.service_needs.severity_of_concern,
-        type_of_service_needed: data.service_needs.type_of_service_needed,
-        family_resources: data.service_needs.family_resources,
-        referral_concern: data.service_needs.referral_concern,
+        service_category: serviceNeeds.service_category,
+        service_category_other: serviceNeeds.service_category_other,
+        severity_of_concern: serviceNeeds.severity_of_concern,
+        type_of_service_needed: serviceNeeds.type_of_service_needed,
+        family_resources: serviceNeeds.family_resources,
+        referral_concern: serviceNeeds.referral_concern,
       },
       demographics: data.demographics,
-      immediate_safety_concern: data.immediate_safety_concern, // Keep as "yes"/"no" string
-      authorization_consent: data.authorization_consent,
+      immediate_safety_concern: immediateSafetyConcernValue, // Keep as "yes"/"no" string
+      authorization_consent: authorizationConsentValue,
     };
 
     // Submit using Redux thunk
@@ -775,8 +857,17 @@ const IntakeForm = () => {
                     {errors.service_request_type.message}
                   </p>
                 )}
+                {!isStartNow && (
+                  <div className="rounded-lg border border-[#294a4a]/20 bg-[#294a4a]/5 p-4 text-sm text-gray-700">
+                    This selection will not trigger an appointment, but VPM will contact you to
+                    complete the student&apos;s file, send consents, and secure insurance info, in
+                    preparation for when an appointment is needed.
+                  </div>
+                )}
               </div>
 
+              {isStartNow && (
+              <>
               {/* SECTION 4: INSURANCE INFORMATION */}
               <div className="space-y-4 animate-fade-in-up animation-delay-600">
                 <div className="flex items-center gap-2 pb-2 border-b-2 border-[#294a4a]/20">
@@ -1416,6 +1507,8 @@ const IntakeForm = () => {
                   </p>
                 )}
               </div>
+              </>
+              )}
 
               {/* Submit Button and Footer */}
               <div className="space-y-4 pt-4 border-t">
