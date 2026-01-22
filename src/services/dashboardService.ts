@@ -26,12 +26,13 @@ export interface DashboardSummary {
 }
 
 export interface DashboardFilters {
-  district_id?: number;
-  school_id?: number;
+  district_id?: string;
+  school_id?: string;
   start_date?: string;
   end_date?: string;
   service_status?: string[];
   fiscal_period?: string;
+  period?: string;
 }
 
 export interface DistrictBreakdown {
@@ -56,6 +57,7 @@ export interface TrendData {
   opt_ins: number;
   referrals: number;
   sessions: number;
+  active_students?: number;
 }
 
 // API Response Types (snake_case from backend)
@@ -134,6 +136,20 @@ export interface DistrictsSchoolsResponse {
  * Handles all dashboard-related API calls
  */
 export class DashboardService {
+  private static normalizeSummary(raw: any): DashboardSummary {
+    return {
+      total_opt_ins: raw?.total_opt_ins ?? raw?.opt_ins ?? 0,
+      total_referrals: raw?.total_referrals ?? raw?.referrals ?? 0,
+      active_students: raw?.active_students ?? raw?.active_students_served ?? 0,
+      pending_intakes: raw?.pending_intakes ?? raw?.pending ?? 0,
+      completed_sessions: raw?.completed_sessions ?? raw?.session_counts ?? 0,
+      opt_ins_change: raw?.opt_ins_change,
+      referrals_change: raw?.referrals_change,
+      active_students_change: raw?.active_students_change,
+      sessions_change: raw?.sessions_change,
+    };
+  }
+
   /**
    * Get dashboard summary
    */
@@ -151,8 +167,10 @@ export class DashboardService {
           }
         });
       }
-      const response = await api.get(`/dashboard/summary?${params.toString()}`);
-      return response.data;
+      const response = await api.get(`/api/v1/dashboard/summary?${params.toString()}`);
+      const data = response.data;
+      const summaryPayload = data?.summary ?? data?.data?.summary ?? data?.data ?? data;
+      return DashboardService.normalizeSummary(summaryPayload);
     } catch (error: any) {
       // Don't throw error for 404s - let component handle with dummy data
       if (error.response?.status === 404) {
@@ -182,8 +200,16 @@ export class DashboardService {
           }
         });
       }
-      const response = await api.get(`/dashboard/district-breakdown?${params.toString()}`);
-      return response.data;
+      const response = await api.get(`/api/v1/dashboard/district-breakdown?${params.toString()}`);
+      const data = response.data;
+      const items = Array.isArray(data) ? data : data?.districts || [];
+      return items.map((item: any) => ({
+        district_id: item.district_id ?? item.id ?? 0,
+        district_name: item.district_name ?? item.name ?? "Unknown",
+        opt_ins: item.opt_ins ?? item.total_opt_ins ?? 0,
+        referrals: item.referrals ?? item.total_referrals ?? 0,
+        active_students: item.active_students ?? item.active_students_served ?? 0,
+      }));
     } catch (error: any) {
       // Don't throw error for 404s - let component handle with dummy data
       if (error.response?.status === 404) {
@@ -213,8 +239,17 @@ export class DashboardService {
           }
         });
       }
-      const response = await api.get(`/dashboard/school-breakdown?${params.toString()}`);
-      return response.data;
+      const response = await api.get(`/api/v1/dashboard/school-breakdown?${params.toString()}`);
+      const data = response.data;
+      const items = Array.isArray(data) ? data : data?.schools || [];
+      return items.map((item: any) => ({
+        school_id: item.school_id ?? item.id ?? 0,
+        school_name: item.school_name ?? item.name ?? "Unknown",
+        district_id: item.district_id ?? 0,
+        opt_ins: item.opt_ins ?? item.total_opt_ins ?? 0,
+        referrals: item.referrals ?? item.total_referrals ?? 0,
+        active_students: item.active_students ?? item.active_students_served ?? 0,
+      }));
     } catch (error: any) {
       // Don't throw error for 404s - let component handle with dummy data
       if (error.response?.status === 404) {
@@ -244,8 +279,27 @@ export class DashboardService {
           }
         });
       }
-      const response = await api.get(`/dashboard/trends?${params.toString()}`);
-      return response.data;
+      const response = await api.get(`/api/v1/dashboard/trends?${params.toString()}`);
+      const data = response.data;
+      if (Array.isArray(data)) {
+        return data;
+      }
+      if (data?.labels && data?.series) {
+        return data.labels.map((label: string, index: number) => ({
+          date: label,
+          opt_ins: data.series.opt_ins?.[index] ?? 0,
+          referrals: data.series.referrals?.[index] ?? 0,
+          sessions: data.series.sessions?.[index] ?? 0,
+          active_students:
+            data.series.active_students?.[index] ??
+            data.series.active_students_served?.[index] ??
+            0,
+        }));
+      }
+      if (data?.trends) {
+        return data.trends;
+      }
+      return [];
     } catch (error: any) {
       // Don't throw error for 404s - let component handle with dummy data
       if (error.response?.status === 404) {
@@ -267,9 +321,10 @@ export class DashboardService {
   static async getDistrictsSchools(filters?: {
     page?: number;
     limit?: number;
-    district_id?: number;
-    school_id?: number;
+    district_id?: string;
+    school_id?: string;
     status?: "pending" | "processed" | "active";
+    search?: string;
     date_from?: string;
     date_to?: string;
     include_forms?: boolean;

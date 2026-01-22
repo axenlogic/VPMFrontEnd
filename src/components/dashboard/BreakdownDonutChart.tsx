@@ -33,7 +33,7 @@ const BreakdownDonutChart = ({
   const chartOptions: Highcharts.Options = {
     chart: {
       type: 'pie',
-      height: 300,
+      height: 320,
       backgroundColor: 'transparent',
       spacing: [0, 0, 0, 0],
     },
@@ -89,44 +89,31 @@ const BreakdownDonutChart = ({
           total: item.total,
           color: colors[index % colors.length],
         })),
-        center: ['40%', '50%'],
-        size: '75%',
+        center: ['50%', '50%'],
+        size: '85%',
       },
     ],
   };
 
   return (
     <Card className="bg-white border border-gray-200 shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="text-lg font-bold text-gray-900">{title}</CardTitle>
-        {onPeriodChange && (
-          <Select value={period} onValueChange={onPeriodChange}>
-            <SelectTrigger 
-              className="w-[100px] h-8 text-sm text-white rounded-lg"
-              style={{ backgroundColor: '#375b59' }}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="week">Week</SelectItem>
-              <SelectItem value="month">Month</SelectItem>
-              <SelectItem value="quarter">Quarter</SelectItem>
-              <SelectItem value="year">Year</SelectItem>
-            </SelectContent>
-          </Select>
-        )}
+      <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-gray-100">
+        <div className="space-y-1">
+          <CardTitle className="text-lg font-semibold text-gray-900">{title}</CardTitle>
+          <p className="text-xs text-gray-500">School distribution summary</p>
+        </div>
       </CardHeader>
-      <CardContent className="p-4">
-        <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6 lg:gap-8">
+      <CardContent className="p-5">
+        <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6 lg:gap-6">
           {/* Donut Chart with Center Text - Left Aligned */}
-          <div className="relative w-full lg:w-[45%] flex-shrink-0 flex items-center justify-start" style={{ minHeight: '300px' }}>
-            <div className="relative w-full" style={{ height: '300px' }}>
+          <div className="relative w-full lg:w-[50%] flex-shrink-0 flex items-center justify-center" style={{ minHeight: '320px' }}>
+            <div className="relative w-full" style={{ height: '320px' }}>
               <HighchartsWrapper options={chartOptions} />
               {/* Center Text Overlay - Positioned relative to chart center */}
               <div 
                 className="absolute flex flex-col items-center justify-center pointer-events-none z-10"
                 style={{
-                  left: '40%',
+                  left: '50%',
                   top: '50%',
                   transform: 'translate(-50%, -50%)',
                 }}
@@ -140,10 +127,11 @@ const BreakdownDonutChart = ({
           </div>
 
           {/* Legend - Vertically centered with chart, larger bullets */}
-          <div className="flex-1 w-full lg:w-auto flex flex-col justify-center" style={{ margin: '35px 30px 0px 0px' }}>
-            <div className="space-y-4">
-              {data.map((item, index) => (
-                <div key={item.name} className="flex items-start gap-3">
+          <div className="flex-1 w-full lg:w-auto flex flex-col justify-center" style={{ margin: '10px 10px 0px 0px' }}>
+            <div className="relative">
+              <div className="space-y-4 max-h-[260px] overflow-y-auto pr-3 rounded-lg border border-gray-100 bg-white/80 shadow-inner">
+                {data.map((item, index) => (
+                  <div key={item.name} className="flex items-start gap-3 px-3 py-2">
                   <div
                     className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5 shadow-md border-2 border-white"
                     style={{ backgroundColor: colors[index % colors.length] }}
@@ -167,8 +155,10 @@ const BreakdownDonutChart = ({
                       </p>
                     </div>
                   </div>
-                </div>
-              ))}
+                  </div>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent rounded-b-lg" />
             </div>
           </div>
         </div>

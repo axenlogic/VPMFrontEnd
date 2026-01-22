@@ -16,118 +16,73 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionPeriod, setSessionPeriod] = useState("week");
   const [breakdownPeriod, setBreakdownPeriod] = useState("week");
+  const [districtFilter, setDistrictFilter] = useState<string>("all");
+  const [schoolFilter, setSchoolFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      // Fetch districts data separately to ensure it's always attempted
-      let districtsData = null;
-      try {
-        districtsData = await DashboardService.getDistrictsSchools({
-          page: 1,
-          limit: 50,
-          include_forms: true,
-          forms_limit: 50,
-          sort_by: "name",
-          sort_order: "asc",
-        });
-        
-        if (districtsData && districtsData.districts) {
-          setDistricts(districtsData.districts);
-        }
-      } catch (districtsError: any) {
-        // Don't set districts if there's an error, let it remain null/empty
-        setDistricts(null);
-      }
-      
-      // Try to fetch other dashboard data, but don't let failures affect districts
-      try {
-        const [summaryData, trendsData, districtData, schoolData] = await Promise.all([
-          DashboardService.getDashboardSummary(),
-          DashboardService.getTrendData(),
-          DashboardService.getDistrictBreakdown(),
-          DashboardService.getSchoolBreakdown(),
-        ]);
-        setSummary(summaryData);
-        setTrendData(trendsData);
-        setDistrictBreakdown(districtData);
-        setSchoolBreakdown(schoolData);
-      } catch (apiError: any) {
-        // Use dummy data if API fails - silently fail, don't show error
-        setSummary({
-          total_opt_ins: 1247,
-          total_referrals: 856,
-          active_students: 342,
-          pending_intakes: 23,
-          completed_sessions: 1890,
-          opt_ins_change: { value: "+12", is_positive: true },
-          referrals_change: { value: "+4", is_positive: true },
-          active_students_change: { value: "+8", is_positive: true },
-          sessions_change: { value: "+15", is_positive: true },
-        });
-        
-        // Generate dummy trend data (last 7 days)
-        const dummyTrends: TrendData[] = [];
-        const today = new Date();
-        for (let i = 6; i >= 0; i--) {
-          const date = new Date(today);
-          date.setDate(date.getDate() - i);
-          dummyTrends.push({
-            date: date.toISOString().split('T')[0],
-            opt_ins: Math.floor(Math.random() * 50) + 100,
-            referrals: Math.floor(Math.random() * 30) + 60,
-            sessions: Math.floor(Math.random() * 100) + 200,
-          });
-        }
-        setTrendData(dummyTrends);
-        
-        // Dummy district breakdown
-        setDistrictBreakdown([
-          { district_id: 1, district_name: "Springfield District", opt_ins: 450, referrals: 320, active_students: 120 },
-          { district_id: 2, district_name: "Riverside District", opt_ins: 380, referrals: 280, active_students: 95 },
-          { district_id: 3, district_name: "Oakwood District", opt_ins: 280, referrals: 180, active_students: 75 },
-          { district_id: 4, district_name: "Maple Valley District", opt_ins: 137, referrals: 76, active_students: 52 },
-        ]);
-        
-        setSchoolBreakdown([]);
-        // Note: Don't reset districts here - they were already set above
-      }
+      const summaryData = await DashboardService.getDashboardSummary();
+      setSummary(summaryData);
     } catch (error: any) {
-      // Final fallback - use dummy data
-      setSummary({
-        total_opt_ins: 1247,
-        total_referrals: 856,
-        active_students: 342,
-        pending_intakes: 23,
-        completed_sessions: 1890,
-        opt_ins_change: { value: "+12", is_positive: true },
-        referrals_change: { value: "+4", is_positive: true },
-        active_students_change: { value: "+8", is_positive: true },
-        sessions_change: { value: "+15", is_positive: true },
-      });
-      
-      const dummyTrends: TrendData[] = [];
-      const today = new Date();
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        dummyTrends.push({
-          date: date.toISOString().split('T')[0],
-          opt_ins: Math.floor(Math.random() * 50) + 100,
-          referrals: Math.floor(Math.random() * 30) + 60,
-          sessions: Math.floor(Math.random() * 100) + 200,
-        });
-      }
-      setTrendData(dummyTrends);
-      
-      setDistrictBreakdown([
-        { district_id: 1, district_name: "Springfield District", opt_ins: 450, referrals: 320, active_students: 120 },
-        { district_id: 2, district_name: "Riverside District", opt_ins: 380, referrals: 280, active_students: 95 },
-        { district_id: 3, district_name: "Oakwood District", opt_ins: 280, referrals: 180, active_students: 75 },
-        { district_id: 4, district_name: "Maple Valley District", opt_ins: 137, referrals: 76, active_students: 52 },
-      ]);
+      setSummary(null);
+      toast.error(error.message || "Failed to load dashboard data");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchDistrictsSchoolsData = async () => {
+    try {
+      const districtsData = await DashboardService.getDistrictsSchools({
+        page: 1,
+        limit: 50,
+        include_forms: true,
+        forms_limit: 50,
+        sort_by: "name",
+        sort_order: "asc",
+        district_id: districtFilter !== "all" ? districtFilter : undefined,
+        school_id: schoolFilter !== "all" ? schoolFilter : undefined,
+        status: statusFilter !== "all" ? (statusFilter as "pending" | "processed" | "active") : undefined,
+        search: searchTerm.trim() || undefined,
+      });
+
+      if (districtsData && districtsData.districts) {
+        setDistricts(districtsData.districts);
+      } else {
+        setDistricts(null);
+      }
+    } catch (error: any) {
+      setDistricts(null);
+    }
+  };
+
+  const fetchTrendData = async () => {
+    try {
+      const trendsData = await DashboardService.getTrendData({ period: sessionPeriod });
+      setTrendData(trendsData);
+    } catch (error: any) {
+      setTrendData([]);
+    }
+  };
+
+  const fetchSchoolBreakdownData = async () => {
+    try {
+      const schoolData = await DashboardService.getSchoolBreakdown({ period: breakdownPeriod });
+      setSchoolBreakdown(schoolData);
+    } catch (error: any) {
+      setSchoolBreakdown([]);
+    }
+  };
+
+  const fetchDistrictBreakdownData = async () => {
+    try {
+      const districtData = await DashboardService.getDistrictBreakdown({ period: breakdownPeriod });
+      setDistrictBreakdown(districtData);
+    } catch (error: any) {
+      setDistrictBreakdown([]);
     }
   };
 
@@ -135,20 +90,65 @@ const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // Stable dummy data for active students (to prevent random regeneration on re-renders)
-  const stableActiveStudentsData = [320, 325, 330, 335, 340, 342, 345];
+  useEffect(() => {
+    fetchTrendData();
+  }, [sessionPeriod]);
 
+  useEffect(() => {
+    fetchSchoolBreakdownData();
+    fetchDistrictBreakdownData();
+  }, [breakdownPeriod]);
+
+  useEffect(() => {
+    fetchDistrictsSchoolsData();
+  }, [districtFilter, schoolFilter, statusFilter, searchTerm]);
+
+  const districtOptions = useMemo(() => {
+    if (!districts) return [];
+    return districts.map((district) => ({
+      id: district.id,
+      name: district.name,
+    }));
+  }, [districts]);
+
+  const schoolOptions = useMemo(() => {
+    if (!districts) return [];
+    const filteredDistricts =
+      districtFilter === "all"
+        ? districts
+        : districts.filter((district) => district.id === districtFilter);
+    const schools = filteredDistricts.flatMap((district) => district.schools || []);
+    return schools.map((school) => ({
+      id: school.id,
+      name: school.name,
+    }));
+  }, [districts, districtFilter]);
+
+  const handleDistrictsFiltersChange = (next: {
+    districtId?: string;
+    schoolId?: string;
+    status?: string;
+    search?: string;
+  }) => {
+    if (next.districtId !== undefined) {
+      setDistrictFilter(next.districtId);
+    }
+    if (next.schoolId !== undefined) {
+      setSchoolFilter(next.schoolId);
+    }
+    if (next.status !== undefined) {
+      setStatusFilter(next.status);
+    }
+    if (next.search !== undefined) {
+      setSearchTerm(next.search);
+    }
+  };
+
+  // Stable dummy data for active students (to prevent random regeneration on re-renders)
   // Prepare trend data for summary cards (last 7 days) - memoized to prevent unnecessary recalculations
   const getTrendDataForCard = (key: 'opt_ins' | 'referrals' | 'sessions' | 'active_students') => {
     if (trendData.length === 0) {
-      // Return dummy trend data if no data available
-      const baseValues = {
-        opt_ins: [120, 135, 128, 142, 138, 145, 152],
-        referrals: [85, 92, 88, 95, 90, 98, 105],
-        sessions: [250, 280, 270, 290, 285, 300, 310],
-        active_students: stableActiveStudentsData,
-      };
-      return baseValues[key] || Array(7).fill(0);
+      return Array(7).fill(0);
     }
     
     const last7Days = trendData.slice(-7);
@@ -161,8 +161,7 @@ const Dashboard = () => {
         case 'sessions':
           return d.sessions;
         case 'active_students':
-          // Use stable data instead of random - map to index
-          return stableActiveStudentsData[index] || stableActiveStudentsData[0];
+          return d.active_students ?? 0;
         default:
           return 0;
       }
@@ -174,41 +173,36 @@ const Dashboard = () => {
   const referralsTrendData = useMemo(() => getTrendDataForCard('referrals'), [trendData]);
   const activeStudentsTrendData = useMemo(() => getTrendDataForCard('active_students'), [trendData]);
 
-  // Prepare session analytics data based on selected period - memoized to prevent unnecessary recalculations
-  const sessionAnalyticsData = useMemo(() => {
-    const data = trendData.map(d => ({
-      date: d.date,
-      value: d.sessions,
-    }));
-    
-    // Filter data based on period (for now, return all data - can be enhanced with actual filtering)
-    // In a real implementation, you would filter based on the period
-    return data;
-  }, [trendData, sessionPeriod]);
+  const sessionSeriesData = useMemo(() => {
+    return {
+      categories: trendData.map((d) => d.date),
+      data: trendData.map((d) => d.sessions),
+    };
+  }, [trendData]);
 
-  // Prepare district breakdown data for donut chart based on selected period - memoized to prevent unnecessary recalculations
-  const districtBreakdownData = useMemo(() => {
-    if (districtBreakdown.length === 0) return [];
-    
+  // Prepare school breakdown data for donut chart based on selected period - memoized to prevent unnecessary recalculations
+  const schoolBreakdownData = useMemo(() => {
+    if (schoolBreakdown.length === 0) return [];
+
     // Filter data based on period (for now, return all data - can be enhanced with actual filtering)
     // In a real implementation, you would filter based on the period
-    const totalOptIns = districtBreakdown.reduce((sum, d) => sum + d.opt_ins, 0);
-    const totalReferrals = districtBreakdown.reduce((sum, d) => sum + d.referrals, 0);
-    const totalActive = districtBreakdown.reduce((sum, d) => sum + d.active_students, 0);
+    const totalOptIns = schoolBreakdown.reduce((sum, s) => sum + s.opt_ins, 0);
+    const totalReferrals = schoolBreakdown.reduce((sum, s) => sum + s.referrals, 0);
+    const totalActive = schoolBreakdown.reduce((sum, s) => sum + s.active_students, 0);
     const totalValue = totalOptIns + totalReferrals + totalActive;
-    
-    return districtBreakdown.map((district) => {
-      const districtValue = district.opt_ins + district.referrals + district.active_students;
-      
+
+    return schoolBreakdown.map((school) => {
+      const schoolValue = school.opt_ins + school.referrals + school.active_students;
+
       return {
-        name: district.district_name,
-        value: districtValue,
-        percentage: totalValue > 0 ? (districtValue / totalValue) * 100 : 0,
-        count: district.opt_ins + district.referrals + district.active_students,
-        total: districtValue,
+        name: school.school_name,
+        value: schoolValue,
+        percentage: totalValue > 0 ? (schoolValue / totalValue) * 100 : 0,
+        count: schoolValue,
+        total: schoolValue,
       };
     });
-  }, [districtBreakdown, breakdownPeriod]);
+  }, [schoolBreakdown, breakdownPeriod]);
 
   if (isLoading) {
     return (
@@ -277,45 +271,45 @@ const Dashboard = () => {
         {/* Session Counts Analytics - CSV Data Chart */}
         <CSVDataChart
           title="Session Counts Analytics"
-          csvUrl={import.meta.env.VITE_CSV_DATA_URL || undefined}
+          seriesData={sessionSeriesData}
           period={sessionPeriod}
           onPeriodChange={setSessionPeriod}
         />
 
         {/* District & School Breakdown - Donut Chart */}
         <BreakdownDonutChart
-          title="District & School Breakdown"
-          data={districtBreakdownData.length > 0 ? districtBreakdownData : [
+          title="School Breakdown"
+          data={schoolBreakdownData.length > 0 ? schoolBreakdownData : [
             {
-              name: "Sample District 1",
+              name: "Sample School 1",
               value: 36.04,
               percentage: 36.04,
               count: 9874,
               total: 1897,
             },
             {
-              name: "Sample District 2",
+              name: "Sample School 2",
               value: 28.63,
               percentage: 28.63,
               count: 7845,
               total: 2955,
             },
             {
-              name: "Sample District 3",
+              name: "Sample School 3",
               value: 17.79,
               percentage: 17.79,
               count: 4874,
               total: 4854,
             },
             {
-              name: "Sample District 4",
+              name: "Sample School 4",
               value: 12.62,
               percentage: 12.62,
               count: 3459,
               total: 6700,
             },
             {
-              name: "Sample District 5",
+              name: "Sample School 5",
               value: 4.92,
               percentage: 4.92,
               count: 1348,
@@ -324,7 +318,7 @@ const Dashboard = () => {
           ]}
           period={breakdownPeriod}
           onPeriodChange={setBreakdownPeriod}
-          totalLabel="Total Aggregation"
+          totalLabel="Total Schools"
         />
       </div>
 
@@ -332,6 +326,15 @@ const Dashboard = () => {
       <div className="mt-6">
         <DistrictsList
           districts={districts || undefined}
+          districtOptions={districtOptions}
+          schoolOptions={schoolOptions}
+          filters={{
+            districtId: districtFilter,
+            schoolId: schoolFilter,
+            status: statusFilter,
+            search: searchTerm,
+          }}
+          onFiltersChange={handleDistrictsFiltersChange}
           onFormClick={(form) => {
             // Handle form click - can navigate to form details or open modal
             // Example: navigate(`/admin/intake/${form.id}`);

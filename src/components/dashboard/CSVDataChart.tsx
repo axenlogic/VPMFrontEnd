@@ -17,6 +17,7 @@ interface CSVDataChartProps {
   title: string;
   csvUrl?: string;
   csvData?: string;
+  seriesData?: { categories: string[]; data: number[] };
   period?: string;
   onPeriodChange?: (period: string) => void;
 }
@@ -25,6 +26,7 @@ const CSVDataChart = ({
   title,
   csvUrl,
   csvData,
+  seriesData,
   period = "week",
   onPeriodChange,
 }: CSVDataChartProps) => {
@@ -34,6 +36,10 @@ const CSVDataChart = ({
 
   useEffect(() => {
     const loadCSVData = async () => {
+      if (seriesData) {
+        setCsvContent("");
+        return;
+      }
       if (csvUrl) {
         setIsLoading(true);
         setError(null);
@@ -46,44 +52,19 @@ const CSVDataChart = ({
           setCsvContent(text);
         } catch (err: any) {
           setError(err.message || "Failed to load CSV data");
-          // Use dummy CSV data as fallback
-          setCsvContent(generateDummyCSV());
+          setCsvContent("");
         } finally {
           setIsLoading(false);
         }
       } else if (csvData) {
         setCsvContent(csvData);
       } else {
-        // Use dummy CSV data if no source provided
-        setCsvContent(generateDummyCSV());
+        setCsvContent("");
       }
     };
 
     loadCSVData();
-  }, [csvUrl, csvData]);
-
-  const generateDummyCSV = () => {
-    // Generate dummy CSV data with time format like HH:MM:SS
-    const now = new Date();
-    const dates: string[] = [];
-    const values: number[] = [];
-    
-    for (let i = 8; i >= 0; i--) {
-      const date = new Date(now);
-      date.setSeconds(date.getSeconds() - i);
-      const timeStr = date.toLocaleTimeString('en-US', { 
-        hour12: false, 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit' 
-      });
-      dates.push(timeStr);
-      // Generate values similar to screenshot (-4 to 6 range)
-      values.push(Number((Math.random() * 10 - 4).toFixed(1)));
-    }
-
-    return `Time,Values\n${dates.map((date, i) => `${date},${values[i]}`).join('\n')}`;
-  };
+  }, [csvUrl, csvData, seriesData]);
 
   const handleRefresh = () => {
     if (csvUrl) {
@@ -153,7 +134,10 @@ const CSVDataChart = ({
     return { categories, data };
   };
 
-  const { categories, data } = parseCSVData(csvContent || generateDummyCSV());
+  const parsed = seriesData
+    ? { categories: seriesData.categories, data: seriesData.data }
+    : parseCSVData(csvContent);
+  const { categories, data } = parsed;
 
   // Orange color scheme for Session Counts Analytics
   const chartLineColor = '#ff8548'; // Orange border line color
@@ -162,7 +146,7 @@ const CSVDataChart = ({
   const chartOptions: Highcharts.Options = {
     chart: {
       type: 'area',
-      height: 280,
+      height: 300,
       backgroundColor: 'transparent',
       spacing: [15, 15, 15, 15],
     },
@@ -282,13 +266,16 @@ const CSVDataChart = ({
 
   return (
     <Card className="bg-white border border-gray-200 shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="text-lg font-bold text-gray-900">{title}</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-gray-100">
+        <div className="space-y-1">
+          <CardTitle className="text-lg font-semibold text-gray-900">{title}</CardTitle>
+          <p className="text-xs text-gray-500">Live session trend overview</p>
+        </div>
         <div className="flex items-center gap-2">
           {onPeriodChange && (
             <Select value={period} onValueChange={onPeriodChange}>
               <SelectTrigger 
-                className="w-[100px] h-8 text-sm text-white rounded-lg"
+                className="w-[110px] h-9 text-sm text-white rounded-md shadow-sm"
                 style={{ backgroundColor: '#375b59' }}
               >
                 <SelectValue />
@@ -308,7 +295,7 @@ const CSVDataChart = ({
                 size="icon"
                 onClick={handleRefresh}
                 disabled={isLoading}
-                className="h-8 w-8"
+                className="h-9 w-9 rounded-md border border-gray-200 bg-white hover:bg-gray-50"
               >
                 <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>
@@ -316,7 +303,7 @@ const CSVDataChart = ({
                 variant="ghost"
                 size="icon"
                 onClick={handleDownload}
-                className="h-8 w-8"
+                className="h-9 w-9 rounded-md border border-gray-200 bg-white hover:bg-gray-50"
               >
                 <Download className="h-4 w-4" />
               </Button>
@@ -324,13 +311,19 @@ const CSVDataChart = ({
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         {error && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
             {error} - Using sample data
           </div>
         )}
-        <HighchartsWrapper options={chartOptions} />
+        {data.length === 0 ? (
+          <div className="flex items-center justify-center h-[260px] text-sm text-gray-500">
+            No session data available for this period.
+          </div>
+        ) : (
+          <HighchartsWrapper options={chartOptions} />
+        )}
       </CardContent>
     </Card>
   );

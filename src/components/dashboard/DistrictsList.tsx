@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Building2, School, FileText, ChevronRight, Users, Calendar, Copy, Check, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,9 +38,30 @@ export interface District {
 interface DistrictsListProps {
   districts?: District[];
   onFormClick?: (form: IntakeForm) => void;
+  districtOptions?: { id: string; name: string }[];
+  schoolOptions?: { id: string; name: string }[];
+  filters?: {
+    districtId: string;
+    schoolId: string;
+    status: string;
+    search: string;
+  };
+  onFiltersChange?: (filters: {
+    districtId?: string;
+    schoolId?: string;
+    status?: string;
+    search?: string;
+  }) => void;
 }
 
-const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
+const DistrictsList = ({
+  districts,
+  onFormClick,
+  districtOptions = [],
+  schoolOptions = [],
+  filters,
+  onFiltersChange,
+}: DistrictsListProps) => {
   const [localDistricts, setLocalDistricts] = useState<District[]>(districts || []);
 
   useEffect(() => {
@@ -133,16 +157,119 @@ const DistrictsList = ({ districts, onFormClick }: DistrictsListProps) => {
     });
   };
 
+  const hasActiveFilters =
+    (filters?.districtId && filters?.districtId !== "all") ||
+    (filters?.schoolId && filters?.schoolId !== "all") ||
+    (filters?.status && filters?.status !== "all") ||
+    (filters?.search && filters?.search.trim().length > 0);
+
   return (
     <>
     <Card className="bg-white border border-gray-200 shadow-lg overflow-hidden">
       <CardHeader className="pb-5 bg-gradient-to-r from-[#294a4a] to-[#375b59] text-white">
-        <CardTitle className="text-xl font-semibold flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
-            <Building2 className="h-6 w-6" />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <CardTitle className="text-xl font-semibold flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+              <Building2 className="h-6 w-6" />
+            </div>
+            Districts & Schools Overview
+          </CardTitle>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="w-full sm:w-[220px]">
+              <Input
+                value={filters?.search || ""}
+                onChange={(event) => onFiltersChange?.({ search: event.target.value })}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    onFiltersChange?.({ search: (event.target as HTMLInputElement).value });
+                  }
+                }}
+                placeholder="Search student name or ID"
+                className="h-9 bg-white text-gray-900 placeholder:text-gray-400"
+              />
+            </div>
+            <Select
+              value={filters?.districtId || "all"}
+              onValueChange={(value) => onFiltersChange?.({ districtId: value, schoolId: "all" })}
+            >
+              <SelectTrigger
+                className={`h-9 w-[180px] bg-white text-gray-900 ${
+                  filters?.districtId && filters.districtId !== "all"
+                    ? "ring-2 ring-white/40"
+                    : ""
+                }`}
+              >
+                <SelectValue placeholder="All Districts" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Districts</SelectItem>
+                {districtOptions.map((district) => (
+                  <SelectItem key={district.id} value={district.id}>
+                    {district.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={filters?.schoolId || "all"}
+              onValueChange={(value) => onFiltersChange?.({ schoolId: value })}
+            >
+              <SelectTrigger
+                className={`h-9 w-[180px] bg-white text-gray-900 ${
+                  filters?.schoolId && filters.schoolId !== "all"
+                    ? "ring-2 ring-white/40"
+                    : ""
+                }`}
+              >
+                <SelectValue placeholder="All Schools" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Schools</SelectItem>
+                {schoolOptions.map((school) => (
+                  <SelectItem key={school.id} value={school.id}>
+                    {school.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={filters?.status || "all"}
+              onValueChange={(value) => onFiltersChange?.({ status: value })}
+            >
+              <SelectTrigger
+                className={`h-9 w-[150px] bg-white text-gray-900 ${
+                  filters?.status && filters.status !== "all"
+                    ? "ring-2 ring-white/40"
+                    : ""
+                }`}
+              >
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Opt-in</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="processed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+            {hasActiveFilters && (
+              <Button
+                type="button"
+                onClick={() =>
+                  onFiltersChange?.({
+                    districtId: "all",
+                    schoolId: "all",
+                    status: "all",
+                    search: "",
+                  })
+                }
+                className="h-9 rounded-full px-4 bg-white text-[#294a4a] shadow-sm hover:bg-gray-100"
+              >
+                Clear
+              </Button>
+            )}
           </div>
-          Districts & Schools Overview
-        </CardTitle>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         {displayDistricts.length === 0 ? (
