@@ -13,7 +13,7 @@ interface SubHeaderProps {
 
 const SubHeader = ({ publicRoute = false }: SubHeaderProps) => {
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { profile, getDisplayName, getEmail } = useUserProfile();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -33,6 +33,22 @@ const SubHeader = ({ publicRoute = false }: SubHeaderProps) => {
     .join("")
     .toUpperCase()
     .slice(0, 2) || "U";
+
+  const role = user?.role || profile?.role;
+  const orgLabel =
+    role === "school-user"
+      ? profile?.school_name || profile?.schoolName || user?.schoolName
+      : role === "district-user" || role === "district_admin" || role === "district_viewer"
+      ? profile?.district_name || profile?.districtName || user?.districtName
+      : role === "admin"
+      ? "Admin"
+      : profile?.district_name ||
+        profile?.districtName ||
+        profile?.school_name ||
+        profile?.schoolName ||
+        user?.districtName ||
+        user?.schoolName;
+  const badgeTitle = `${getDisplayName()}${orgLabel ? ` • ${orgLabel}` : ""}`;
 
   return (
     <>
@@ -57,7 +73,7 @@ const SubHeader = ({ publicRoute = false }: SubHeaderProps) => {
               </Avatar>
               <div className="hidden sm:flex flex-col">
                 <p className="text-sm font-semibold text-[#294a4a] leading-tight">
-                  {getDisplayName()}
+                  {badgeTitle}
                 </p>
                 <p className="text-xs text-[#375b59] leading-tight truncate max-w-[200px]">
                   {getEmail()}
@@ -66,8 +82,8 @@ const SubHeader = ({ publicRoute = false }: SubHeaderProps) => {
             </div>
           )}
 
-          {/* Hamburger Menu Button - Only show for authenticated users */}
-          {isAuthenticated && (
+          {/* Hamburger Menu Button - Only show for admin users */}
+          {isAuthenticated && user?.role === "admin" && (
             <Button
               variant="ghost"
               size="icon"
@@ -81,8 +97,8 @@ const SubHeader = ({ publicRoute = false }: SubHeaderProps) => {
         </div>
       </div>
 
-      {/* Navigation Drawer - Only render for authenticated users */}
-      {isAuthenticated && (
+      {/* Navigation Drawer - Only render for admin users */}
+      {isAuthenticated && user?.role === "admin" && (
         <NavigationDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
       )}
     </>

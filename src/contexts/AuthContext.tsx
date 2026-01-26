@@ -4,6 +4,9 @@ import { useNavigate } from "react-router-dom";
 interface User {
   email: string;
   full_name: string;
+  role?: string;
+  districtName?: string | null;
+  schoolName?: string | null;
 }
 
 interface AuthContextType {

@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { Loader2, Users, FileText, Activity, Calendar } from "lucide-react";
 import { DashboardService, DashboardSummary, TrendData, DistrictBreakdown, SchoolBreakdown, District } from "@/services/dashboardService";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import SummaryCard from "@/components/dashboard/SummaryCard";
 import CSVDataChart from "@/components/dashboard/CSVDataChart";
@@ -14,6 +15,9 @@ const Dashboard = () => {
   const [schoolBreakdown, setSchoolBreakdown] = useState<SchoolBreakdown[]>([]);
   const [districts, setDistricts] = useState<District[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const isSchoolUser = user?.role === "school-user";
   const [sessionPeriod, setSessionPeriod] = useState("week");
   const [breakdownPeriod, setBreakdownPeriod] = useState("week");
   const [districtFilter, setDistrictFilter] = useState<string>("all");
@@ -95,13 +99,26 @@ const Dashboard = () => {
   }, [sessionPeriod]);
 
   useEffect(() => {
-    fetchSchoolBreakdownData();
-    fetchDistrictBreakdownData();
-  }, [breakdownPeriod]);
+    if (!isSchoolUser) {
+      fetchSchoolBreakdownData();
+    } else {
+      setSchoolBreakdown([]);
+    }
+
+    if (isAdmin) {
+      fetchDistrictBreakdownData();
+    } else {
+      setDistrictBreakdown([]);
+    }
+  }, [breakdownPeriod, isSchoolUser, isAdmin]);
 
   useEffect(() => {
-    fetchDistrictsSchoolsData();
-  }, [districtFilter, schoolFilter, statusFilter, searchTerm]);
+    if (isAdmin) {
+      fetchDistrictsSchoolsData();
+    } else {
+      setDistricts(null);
+    }
+  }, [districtFilter, schoolFilter, statusFilter, searchTerm, isAdmin]);
 
   const districtOptions = useMemo(() => {
     if (!districts) return [];
@@ -266,8 +283,8 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Second Row - 2 Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Second Row - Charts */}
+      <div className={`grid grid-cols-1 ${isSchoolUser ? "" : "lg:grid-cols-2"} gap-6`}>
         {/* Session Counts Analytics - CSV Data Chart */}
         <CSVDataChart
           title="Session Counts Analytics"
@@ -276,71 +293,74 @@ const Dashboard = () => {
           onPeriodChange={setSessionPeriod}
         />
 
-        {/* District & School Breakdown - Donut Chart */}
-        <BreakdownDonutChart
-          title="School Breakdown"
-          data={schoolBreakdownData.length > 0 ? schoolBreakdownData : [
-            {
-              name: "Sample School 1",
-              value: 36.04,
-              percentage: 36.04,
-              count: 9874,
-              total: 1897,
-            },
-            {
-              name: "Sample School 2",
-              value: 28.63,
-              percentage: 28.63,
-              count: 7845,
-              total: 2955,
-            },
-            {
-              name: "Sample School 3",
-              value: 17.79,
-              percentage: 17.79,
-              count: 4874,
-              total: 4854,
-            },
-            {
-              name: "Sample School 4",
-              value: 12.62,
-              percentage: 12.62,
-              count: 3459,
-              total: 6700,
-            },
-            {
-              name: "Sample School 5",
-              value: 4.92,
-              percentage: 4.92,
-              count: 1348,
-              total: 3020,
-            },
-          ]}
-          period={breakdownPeriod}
-          onPeriodChange={setBreakdownPeriod}
-          totalLabel="Total Schools"
-        />
+        {!isSchoolUser && (
+          <BreakdownDonutChart
+            title="School Breakdown"
+            data={schoolBreakdownData.length > 0 ? schoolBreakdownData : [
+              {
+                name: "Sample School 1",
+                value: 36.04,
+                percentage: 36.04,
+                count: 9874,
+                total: 1897,
+              },
+              {
+                name: "Sample School 2",
+                value: 28.63,
+                percentage: 28.63,
+                count: 7845,
+                total: 2955,
+              },
+              {
+                name: "Sample School 3",
+                value: 17.79,
+                percentage: 17.79,
+                count: 4874,
+                total: 4854,
+              },
+              {
+                name: "Sample School 4",
+                value: 12.62,
+                percentage: 12.62,
+                count: 3459,
+                total: 6700,
+              },
+              {
+                name: "Sample School 5",
+                value: 4.92,
+                percentage: 4.92,
+                count: 1348,
+                total: 3020,
+              },
+            ]}
+            period={breakdownPeriod}
+            onPeriodChange={setBreakdownPeriod}
+            totalLabel="Total Schools"
+          />
+        )}
       </div>
 
       {/* Third Row - Districts & Schools List */}
-      <div className="mt-6">
-        <DistrictsList
-          districts={districts || undefined}
-          districtOptions={districtOptions}
-          schoolOptions={schoolOptions}
-          filters={{
-            districtId: districtFilter,
-            schoolId: schoolFilter,
-            status: statusFilter,
-            search: searchTerm,
-          }}
-          onFiltersChange={handleDistrictsFiltersChange}
-          onFormClick={(form) => {
-            // Handle form click - can navigate to form details or open modal
-            // Example: navigate(`/admin/intake/${form.id}`);
-          }}
-        />
-      </div>
+      {isAdmin && (
+        <div className="mt-6">
+          <DistrictsList
+            districts={districts || undefined}
+            districtOptions={districtOptions}
+            schoolOptions={schoolOptions}
+            filters={{
+              districtId: districtFilter,
+              schoolId: schoolFilter,
+              status: statusFilter,
+              search: searchTerm,
+            }}
+            onFiltersChange={handleDistrictsFiltersChange}
+            onFormClick={(form) => {
+              // Handle form click - can navigate to form details or open modal
+              // Example: navigate(`/admin/intake/${form.id}`);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 };

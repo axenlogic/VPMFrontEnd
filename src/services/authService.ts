@@ -30,6 +30,9 @@ export interface LoginResponse {
   token_type: string;
   username: string;
   full_name: string;
+  role?: string;
+  districtName?: string | null;
+  schoolName?: string | null;
 }
 
 export interface ApiError {
@@ -39,19 +42,19 @@ export interface ApiError {
 // Password validation utility
 export const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   if (password.length < 8) {
     errors.push('Password must be at least 8 characters long');
   }
-  
+
   if (!/[A-Z]/.test(password)) {
     errors.push('Password must contain at least 1 uppercase letter');
   }
-  
+
   if (!/\d/.test(password)) {
     errors.push('Password must contain at least 1 digit');
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors
@@ -78,12 +81,12 @@ export class AuthService {
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail);
       }
-      
+
       // Handle validation errors
       if (error.message) {
         throw new Error(error.message);
       }
-      
+
       // Handle network errors
       throw new Error('Network error. Please check your connection and try again.');
     }
@@ -101,7 +104,7 @@ export class AuthService {
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail);
       }
-      
+
       // Handle network errors
       throw new Error('Network error. Please check your connection and try again.');
     }
@@ -115,6 +118,9 @@ export class AuthService {
       const response = await authApi.login({ email, password });
       return response;
     } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail);
       }

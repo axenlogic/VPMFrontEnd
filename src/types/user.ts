@@ -1,6 +1,13 @@
 // User Profile API Types
 
-export type UserRole = 'vpm_admin' | 'district_admin' | 'district_viewer' | 'public';
+export type UserRole =
+  | 'admin'
+  | 'school-user'
+  | 'district-user'
+  | 'district_admin'
+  | 'district_viewer'
+  | 'vpm_admin'
+  | 'public';
 
 export interface UserProfile {
   id: number;
@@ -9,6 +16,10 @@ export interface UserProfile {
   is_verified: boolean;
   role?: UserRole;
   district_id?: number | null;
+  district_name?: string | null;
+  school_name?: string | null;
+  districtName?: string | null;
+  schoolName?: string | null;
 }
 
 export interface UserProfileError {

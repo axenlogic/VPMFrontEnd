@@ -63,10 +63,16 @@ const Login = () => {
       login(response.access_token, {
         email: formData.email,
         full_name: response.full_name,
+        role: response.role,
+        districtName: response.districtName,
+        schoolName: response.schoolName,
       });
     } catch (error: any) {
       toast.error(
-        error.message || "Login failed. Please check your credentials."
+        error?.response?.data?.message ||
+          error?.response?.data?.detail ||
+          error.message ||
+          "Login failed. Please check your credentials."
       );
     } finally {
       setLoading(false);
