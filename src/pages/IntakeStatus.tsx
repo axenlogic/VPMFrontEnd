@@ -16,6 +16,11 @@ const IntakeStatus = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialUuid = searchParams.get("uuid") || "";
+  const externalToken =
+    searchParams.get("token") ||
+    searchParams.get("externalToken") ||
+    searchParams.get("extToken") ||
+    "";
   const [studentUuid, setStudentUuid] = useState(initialUuid);
   const [copied, setCopied] = useState(false);
   const [hasAutoChecked, setHasAutoChecked] = useState(false);
@@ -29,10 +34,10 @@ const IntakeStatus = () => {
   // Auto-check status if UUID is provided in URL (only once)
   useEffect(() => {
     if (initialUuid && !statusData && !hasAutoChecked) {
-      dispatch(checkIntakeStatus(initialUuid));
+      dispatch(checkIntakeStatus({ studentUuid: initialUuid, accessToken: externalToken || undefined }));
       setHasAutoChecked(true);
     }
-  }, [initialUuid, dispatch, statusData, hasAutoChecked]);
+  }, [initialUuid, dispatch, statusData, hasAutoChecked, externalToken]);
 
   // Clear status state when component unmounts
   useEffect(() => {
@@ -65,7 +70,7 @@ const IntakeStatus = () => {
     dispatch(clearStatusState());
 
     // Check status using Redux thunk
-    await dispatch(checkIntakeStatus(studentUuid.trim()));
+    await dispatch(checkIntakeStatus({ studentUuid: studentUuid.trim(), accessToken: externalToken || undefined }));
   };
 
   // Copy UUID to clipboard

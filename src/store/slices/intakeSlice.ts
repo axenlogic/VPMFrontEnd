@@ -48,13 +48,13 @@ const initialState: IntakeState = {
  */
 export const submitIntakeForm = createAsyncThunk<
   IntakeSubmissionResponse,
-  { formData: IntakeFormData; captchaToken?: string },
+  { formData: IntakeFormData; captchaToken?: string; accessToken?: string },
   { rejectValue: string }
 >(
   'intake/submitForm',
-  async ({ formData, captchaToken }, { rejectWithValue }) => {
+  async ({ formData, captchaToken, accessToken }, { rejectWithValue }) => {
     try {
-      const response = await IntakeService.submitIntakeForm(formData, captchaToken);
+      const response = await IntakeService.submitIntakeForm(formData, captchaToken, accessToken);
       return response;
     } catch (error: any) {
       // Extract error message from API response or use default
@@ -72,13 +72,13 @@ export const submitIntakeForm = createAsyncThunk<
  */
 export const checkIntakeStatus = createAsyncThunk<
   IntakeStatusResponse,
-  string,
+  { studentUuid: string; accessToken?: string },
   { rejectValue: string }
 >(
   'intake/checkStatus',
-  async (studentUuid, { rejectWithValue }) => {
+  async ({ studentUuid, accessToken }, { rejectWithValue }) => {
     try {
-      const response = await IntakeService.checkIntakeStatus(studentUuid);
+      const response = await IntakeService.checkIntakeStatus(studentUuid, accessToken);
       return response;
     } catch (error: any) {
       // Extract error message from API response or use default

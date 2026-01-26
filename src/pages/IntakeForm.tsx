@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ import { submitIntakeForm, clearSubmissionState } from "@/store/slices/intakeSli
 import { IntakeFormData } from "@/types/intake";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { IntakeService } from "@/services/intakeService";
 
 // Dropdown options data
 const FAMILY_RESOURCE_OPTIONS = [
@@ -211,6 +212,7 @@ type IntakeFormValues = z.infer<typeof intakeFormSchema> & {
 const IntakeForm = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
   
   // Redux state
@@ -218,9 +220,17 @@ const IntakeForm = () => {
     (state) => state.intake
   );
   
+  const externalToken =
+    searchParams.get("token") ||
+    searchParams.get("externalToken") ||
+    searchParams.get("extToken") ||
+    "";
+
   // Local state for file uploads
   const [insuranceCardFront, setInsuranceCardFront] = useState<File | null>(null);
   const [insuranceCardBack, setInsuranceCardBack] = useState<File | null>(null);
+  const [isPrefilling, setIsPrefilling] = useState(false);
+  const [prefillMeta, setPrefillMeta] = useState<{ verified: boolean; matchLevel: string } | null>(null);
   
   // Copy to clipboard state
   const [copied, setCopied] = useState(false);
@@ -247,6 +257,7 @@ const IntakeForm = () => {
       toast.error(submitError);
     }
   }, [submitError]);
+
 
   const {
     register,
@@ -301,6 +312,42 @@ const IntakeForm = () => {
   const race = watch("demographics.race") || [];
   const familyResources = watch("service_needs.family_resources") || [];
   const referralConcern = watch("service_needs.referral_concern") || [];
+
+  // Prefill section 1 & 2 for external users
+  useEffect(() => {
+    if (!externalToken) {
+      return;
+    }
+
+    const fetchPrefill = async () => {
+      setIsPrefilling(true);
+      try {
+        const prefill = await IntakeService.getIntakePrefill(externalToken);
+        setPrefillMeta({ verified: prefill.verified, matchLevel: prefill.matchLevel });
+
+        setValue("student_information.first_name", prefill.student?.firstName || "", { shouldValidate: false });
+        setValue("student_information.last_name", prefill.student?.lastName || "", { shouldValidate: false });
+        setValue("student_information.grade", prefill.student?.grade || "", { shouldValidate: false });
+        setValue(
+          "student_information.school",
+          prefill.student?.school || prefill.school?.schoolName || "",
+          { shouldValidate: false }
+        );
+        setValue("student_information.date_of_birth", prefill.student?.dateOfBirth || "", { shouldValidate: false });
+        setValue("student_information.student_id", prefill.student?.studentId || "", { shouldValidate: false });
+
+        setValue("parent_guardian_contact.name", prefill.parent?.fatherName || "", { shouldValidate: false });
+        setValue("parent_guardian_contact.email", prefill.parent?.emailAddress || "", { shouldValidate: false });
+        setValue("parent_guardian_contact.phone", prefill.parent?.phone || "", { shouldValidate: false });
+      } catch (error: any) {
+        toast.error(error?.message || "Failed to load prefill data.");
+      } finally {
+        setIsPrefilling(false);
+      }
+    };
+
+    fetchPrefill();
+  }, [externalToken, setValue]);
 
   const handleCheckboxChange = (
     field: string,
@@ -389,7 +436,8 @@ const IntakeForm = () => {
     // CAPTCHA token can be added here when CAPTCHA is implemented
     const result = await dispatch(submitIntakeForm({ 
       formData,
-      captchaToken: undefined // TODO: Add CAPTCHA token when implemented
+      captchaToken: undefined, // TODO: Add CAPTCHA token when implemented
+      accessToken: externalToken || undefined
     }));
     
     // If submission was successful, the useEffect will handle the success message
@@ -675,6 +723,29 @@ const IntakeForm = () => {
           <CardContent className="p-6 md:p-8 overflow-x-hidden">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
               {/* SECTION 1: STUDENT INFORMATION */}
+              {externalToken && (
+                <Alert className="border-[#294a4a]/20 bg-[#294a4a]/5">
+                  <AlertDescription className="text-sm text-[#294a4a] flex items-center gap-2">
+                    {isPrefilling ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading verified student and parent details...
+                      </>
+                    ) : prefillMeta ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        {prefillMeta.verified ? "Verified details found" : "Details found"} • Match level:{" "}
+                        <span className="font-semibold">{prefillMeta.matchLevel}</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-4 w-4" />
+                        Verification data unavailable. You can still fill the form manually.
+                      </>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
               <div className="space-y-4 animate-fade-in-up">
                 <div className="flex items-center gap-2 pb-2 border-b-2 border-[#294a4a]/20">
                   <div className="p-2 bg-[#294a4a]/10 rounded-lg">
@@ -682,7 +753,9 @@ const IntakeForm = () => {
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900">SECTION 1: STUDENT INFORMATION</h3>
                 </div>
-                <p className="text-sm text-gray-600 italic">All fields are auto-populated</p>
+                <p className="text-sm text-gray-600 italic">
+                  {externalToken ? "Fields are pre-filled from verified records. You can edit if needed." : "Please complete all fields below."}
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="first_name">First Name *</Label>

@@ -96,3 +96,27 @@ export interface IntakeFormDetailsResponse {
   authorization_consent: boolean;
 }
 
+export interface IntakePrefillResponse {
+  verified: boolean;
+  matchLevel: "exact" | "partial" | "none" | string;
+  student: {
+    firstName?: string;
+    lastName?: string;
+    grade?: string;
+    school?: string;
+    dateOfBirth?: string;
+    studentId?: string;
+  };
+  parent: {
+    fatherName?: string;
+    emailAddress?: string;
+    phone?: string;
+  };
+  school: {
+    schoolName?: string;
+    districtName?: string;
+    schoolId?: string;
+    districtId?: string;
+  };
+}
+

@@ -1,6 +1,6 @@
 import publicApi from '@/lib/publicApi';
 import api from '@/lib/api';
-import { IntakeFormData, IntakeSubmissionResponse, IntakeStatusResponse, IntakeFormDetailsResponse } from '@/types/intake';
+import { IntakeFormData, IntakeSubmissionResponse, IntakeStatusResponse, IntakeFormDetailsResponse, IntakePrefillResponse } from '@/types/intake';
 
 /**
  * Intake Service
@@ -19,7 +19,8 @@ export class IntakeService {
    */
   static async submitIntakeForm(
     formData: IntakeFormData,
-    captchaToken?: string
+    captchaToken?: string,
+    accessToken?: string
   ): Promise<IntakeSubmissionResponse> {
     try {
       const payload = new FormData();
@@ -144,6 +145,7 @@ export class IntakeService {
       const response = await publicApi.post('/api/v1/intake/submit', payload, {
         headers: {
           'Content-Type': 'multipart/form-data',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
       });
 
@@ -169,9 +171,13 @@ export class IntakeService {
    * @param studentUuid - The student UUID received after form submission
    * @returns Promise with status information
    */
-  static async checkIntakeStatus(studentUuid: string): Promise<IntakeStatusResponse> {
+  static async checkIntakeStatus(studentUuid: string, accessToken?: string): Promise<IntakeStatusResponse> {
     try {
-      const response = await publicApi.get(`/api/v1/intake/status/${studentUuid}`);
+      const response = await publicApi.get(`/api/v1/intake/status/${studentUuid}`, {
+        headers: {
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
       return response.data;
     } catch (error: any) {
       // Extract detailed error message from backend
@@ -188,6 +194,32 @@ export class IntakeService {
       }
       // Generic error
       throw new Error('Failed to check intake status. Please verify the UUID and try again.');
+    }
+  }
+
+  /**
+   * Fetch prefill data for external intake flow
+   * External endpoint - requires external bearer token
+   */
+  static async getIntakePrefill(accessToken: string): Promise<IntakePrefillResponse> {
+    try {
+      const response = await publicApi.get('/api/v1/intake/prefill', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail);
+      }
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Authorization failed. Please restart the intake flow.');
+      }
+      if (error.message === 'Network Error') {
+        throw new Error('Network error. Please check your connection and try again.');
+      }
+      throw new Error('Failed to fetch intake prefill data. Please try again.');
     }
   }
 
